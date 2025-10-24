@@ -14,6 +14,7 @@ A lightweight social feed platform built with Spring Boot, featuring user manage
 ## 🛠️ Tech Stack
 
 - **Backend**: Java 25, Spring Boot 3.5.6
+- **Frontend**: Angular (planned)
 - **Database**: PostgreSQL 16
 - **Cache**: Redis 7
 - **Message Queue**: Apache Kafka
@@ -26,6 +27,7 @@ A lightweight social feed platform built with Spring Boot, featuring user manage
 - Java 25 or higher
 - Docker and Docker Compose
 - Maven (or use included Maven Wrapper)
+- Node.js and npm (for frontend development)
 
 ## 🚀 Quick Start
 
@@ -161,6 +163,7 @@ This MiniTwitter project aims to build a scalable social media platform with the
 
 ### Technology Integration
 - **Backend**: Spring Boot with microservices architecture
+- **Frontend**: Angular SPA with modern UI/UX
 - **Data**: PostgreSQL for persistence, Redis for caching
 - **Streaming**: Kafka for real-time event processing
 - **Monitoring**: Prometheus and Grafana for observability
