@@ -58,11 +58,8 @@ mvn clean package -DskipTests
 mvn spring-boot:run
 ```
 
-### 4. Access the Application
-- **API Base URL**: http://localhost:8080
-- **Health Check**: http://localhost:8080/actuator/health
-- **Prometheus Metrics**: http://localhost:8080/actuator/prometheus
-- **Grafana Dashboard**: http://localhost:3000 (admin/admin)
+### 4. Verify Installation
+The application will start on port 8080. You can test the API endpoints using Postman or curl.
 
 ## 📚 API Endpoints
 
@@ -140,34 +137,34 @@ spring.kafka.consumer.group-id=minitwitter-consumer
 
 ## 📊 Monitoring
 
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Application Metrics**: http://localhost:8080/actuator/prometheus
+The application includes comprehensive monitoring capabilities:
+- **Prometheus**: Metrics collection and storage
+- **Grafana**: Visualization dashboards
+- **Spring Boot Actuator**: Health checks and application metrics
 
-## 🚧 Development Status
+## 🎯 Project Goals
 
-### ✅ Completed
-- [x] Project setup and configuration
-- [x] Docker infrastructure
-- [x] User entity and repository
-- [x] User registration and retrieval
-- [x] Basic security configuration
-- [x] Database integration
+This MiniTwitter project aims to build a scalable social media platform with the following key features:
 
-### 🔄 In Progress
-- [ ] Password hashing (BCrypt)
-- [ ] JWT authentication
-- [ ] Posts system
-- [ ] Feed generation
-- [ ] Kafka event streaming
+### Core Features (MVP)
+- **User Management**: Secure registration, login, and profile management
+- **Posts System**: Create, read, like, and comment on posts (tweets)
+- **Feed Generation**: Personalized home timeline and user timelines
+- **Real-time Updates**: Event-driven architecture with Kafka
+- **Performance**: Redis caching for fast feed delivery
 
-### 📋 Planned
-- [ ] Like/Retweet functionality
-- [ ] Real-time notifications
-- [ ] Search functionality
-- [ ] Image uploads
-- [ ] Rate limiting
-- [ ] Frontend (Angular)
+### Architecture Goals
+- **Scalable**: Designed to handle growth from thousands to millions of users
+- **Reliable**: Strong consistency for writes, eventual consistency for feeds
+- **Observable**: Comprehensive monitoring with metrics and logging
+- **Cloud-Ready**: Containerized deployment with infrastructure as code
+
+### Technology Integration
+- **Backend**: Spring Boot with microservices architecture
+- **Data**: PostgreSQL for persistence, Redis for caching
+- **Streaming**: Kafka for real-time event processing
+- **Monitoring**: Prometheus and Grafana for observability
+- **Deployment**: Docker containers with cloud deployment ready
 
 ## 🤝 Contributing
 
