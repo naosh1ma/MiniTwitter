@@ -1,0 +1,16 @@
+<div class="create-post-container">
+  <h3>What's happening?</h3>
+
+  <form (ngSubmit)="onSubmit()">
+    <textarea [(ngModel)]="postContent" name="postContent" placeholder="Share your thoughts..." maxlength="280" rows="4"
+      required>
+</textarea>
+
+    <div class="post-actions">
+      <span class="char-count">{{ postContent.length }}/280</span>
+      <button type="submit" [disabled]="!postContent.trim() || isSubmitting" class="post-button">
+        {{ isSubmitting ? 'Posting...' : 'Post' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,24 @@
+
+<div class="auth-container">
+    <h2>{{ isLogin ? 'Login' : 'Register' }}</h2>
+    
+    <form (ngSubmit)="isLogin ? onLogin() : onRegister()">
+      <div *ngIf="!isLogin">
+        <input type="email" [(ngModel)]="registerData.email" name="email" placeholder="Email" required>
+      </div>
+      
+      <div>
+        <input type="text" [(ngModel)]="loginRequest.username" name="username" placeholder="Username" required>
+      </div>
+      
+      <div>
+        <input type="password" [(ngModel)]="loginRequest.password" name="password" placeholder="Password" required>
+      </div>
+      
+      <button type="submit">{{ isLogin ? 'Login' : 'Register' }}</button>
+    </form>
+    
+    <button (click)="toggleMode()">
+      {{ isLogin ? 'Need an account? Register' : 'Have an account? Login' }}
+    </button>
+  </div>
