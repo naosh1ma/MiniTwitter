@@ -1,8 +1,10 @@
 package org.art.mt.service;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.art.mt.repository.UserRepository;
+import org.hibernate.service.spi.ServiceException;
 import org.art.mt.entity.User;
 import java.util.Optional;
 
@@ -18,12 +20,19 @@ public class UserService {
     }
 
     public boolean registerUser(String username, String email, String password) {
-        if (userRepository.existsByUsername(username) || userRepository.existsByEmail(email)) {
-            return false;
+        try {
+            // Business logic
+            if (userRepository.existsByUsername(username)) {
+                throw new IllegalArgumentException("Username already exists");
+            }
+            // registration logic
+            User user = new User(username, email, passwordEncoder.encode(password));
+            userRepository.save(user);
+            return true;
+        } catch (DataAccessException e) {
+            // Database errors
+            throw new ServiceException("Database error during registration", e);
         }
-        User user = new User(username, email, passwordEncoder.encode(password));
-        userRepository.save(user);
-        return true;
     }
 
     public Optional<User> getUserByUsername(String username) {
