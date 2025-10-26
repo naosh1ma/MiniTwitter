@@ -1,6 +1,8 @@
 package org.art.mt.service;
 
+import org.art.mt.exception.InvalidTokenException;
 import org.springframework.beans.factory.annotation.Value;
+import io.jsonwebtoken.JwtException;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -29,19 +31,27 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        return Jwts.parserBuilder()
-            .setSigningKey(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
-            .build()
-            .parseClaimsJws(token)
-            .getBody().getSubject();
-    }
-
-    public boolean isTokenExpired(String token) {
-        return Jwts.parserBuilder()
+        try {
+            return Jwts.parserBuilder()
                 .setSigningKey(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
                 .build()
                 .parseClaimsJws(token)
-                .getBody().getExpiration().before(new Date(System.currentTimeMillis()));
+                .getBody().getSubject();
+        } catch (JwtException e) {
+            throw new InvalidTokenException("Invalid JWT token", e);
+        }
+    }
+
+    public boolean isTokenExpired(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody().getExpiration().before(new Date(System.currentTimeMillis()));
+        } catch (JwtException e) {
+            throw new InvalidTokenException("Invalid JWT token", e);
+        }
     }
 
     public Date extractExpiration(String token) {
