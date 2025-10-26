@@ -1,0 +1,14 @@
+<header class="header">
+    <div class="header-content">
+      <h1>MiniTwitter</h1>
+      
+      <div *ngIf="isLoggedIn" class="user-info">
+        <span>Welcome, {{ currentUser?.username }}</span>
+        <button (click)="logout()" class="logout-btn">Logout</button>
+      </div>
+      
+      <div *ngIf="!isLoggedIn" class="auth-info">
+        <span>Please login to continue</span>
+      </div>
+    </div>
+  </header>

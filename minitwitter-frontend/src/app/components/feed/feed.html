@@ -1,0 +1,21 @@
+<div class="feed-container">
+    <h2>MiniTwitter Feed</h2>
+    
+    <div *ngIf="loading" class="loading">
+      Loading posts...
+    </div>
+    
+    <div *ngIf="!loading && posts.length === 0" class="no-posts">
+      No posts yet. Be the first to post!
+    </div>
+    
+    <div *ngFor="let post of posts" class="post">
+      <div class="post-header">
+        <strong>{{ post.author.username }}</strong>
+        <span class="post-date">{{ post.createdAt | date:'short' }}</span>
+      </div>
+      <div class="post-content">
+        {{ post.content }}
+      </div>
+    </div>
+  </div>
