@@ -48,6 +48,7 @@ This will start:
 - Kafka + Zookeeper (Port 9092)
 - Prometheus (Port 9090)
 - Grafana (Port 3000)
+- ELK Stack: Elasticsearch (Port 9200), Logstash (Port 5044), Kibana (Port 5601)
 
 ### 3. Build and Run the Application
 ```bash
@@ -136,12 +137,16 @@ spring.kafka.consumer.group-id=minitwitter-consumer
 | Kafka | 9092 | Message streaming |
 | Prometheus | 9090 | Metrics collection |
 | Grafana | 3000 | Monitoring dashboard |
+| Elasticsearch | 9200 | Log storage and search |
+| Logstash | 5044 | Log processing |
+| Kibana | 5601 | Log visualization |
 
 ## 📊 Monitoring
 
 The application includes comprehensive monitoring capabilities:
 - **Prometheus**: Metrics collection and storage
 - **Grafana**: Visualization dashboards
+- **ELK Stack**: Centralized logging with Elasticsearch, Logstash, and Kibana
 - **Spring Boot Actuator**: Health checks and application metrics
 
 ## 🎯 Project Goals
