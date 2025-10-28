@@ -11,13 +11,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.art.mt.service.UserService;
 import org.art.mt.entity.User;
 import java.util.Optional;
+
+import org.art.mt.dto.ApiResponse;
 import org.art.mt.dto.LoginResponseDTO;
 import org.art.mt.dto.UserDTO;
 import org.art.mt.entity.AuthRequest;
 import org.art.mt.service.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.validation.Valid;
-
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,24 +34,24 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest authRequest) {
-        try {
-            Optional<User> user = userService.getUserByUsername(authRequest.getUsername());
-            if (user.isPresent()) {
-                if (passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
-                    String token = jwtService.generateToken(user.get().getUsername());
-                    UserDTO userDTO = convertToDTO(user.get());
-                    LoginResponseDTO response = new LoginResponseDTO(token, userDTO);
-                    return ResponseEntity.ok(response);
-                } else {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password");
-                }
+public ResponseEntity<ApiResponse<LoginResponseDTO>> login(@Valid @RequestBody AuthRequest authRequest) {
+    try {
+        Optional<User> user = userService.getUserByUsername(authRequest.getUsername());
+        if (user.isPresent()) {
+            if (passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
+                String token = jwtService.generateToken(user.get().getUsername());
+                UserDTO userDTO = convertToDTO(user.get());
+                LoginResponseDTO response = new LoginResponseDTO(token, userDTO);
+                return ResponseEntity.ok(ApiResponse.ok(response, "Login successful"));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Invalid password"));
             }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed");
         }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Invalid username or password"));
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Login failed"));
     }
+}
 
     @PostMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String token) {
@@ -61,11 +62,11 @@ public class AuthController {
 
             String username = jwtService.extractUsername(token);
             if (jwtService.isTokenValid(token, username)) {
-                return ResponseEntity.ok("Token is valid for user: " + username);
+                return ResponseEntity.ok(ApiResponse.ok("Token is valid for user: " + username, "Token is valid"));
             }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Invalid token"));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Invalid token"));
         }
     }
 

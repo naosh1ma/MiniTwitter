@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api';
@@ -11,6 +11,7 @@ import { ApiService } from '../../services/api';
   styleUrls: ['./create-post.css']
 })
 export class CreatePostComponent {
+  @Output() postCreated = new EventEmitter<void>();
   postContent = '';
   isSubmitting = false;
 
@@ -21,23 +22,15 @@ export class CreatePostComponent {
 
     this.isSubmitting = true;
     
-    // Get current user from localStorage
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    
-    const postData = {
-      content: this.postContent,
-      author: {
-        id: user.id,
-        username: user.username
-      }
-    };
+    const postData = { content: this.postContent };
 
     this.apiService.createPost(postData).subscribe({
       next: (response) => {
         console.log('Post created:', response);
         this.postContent = '';
         this.isSubmitting = false;
-        // Optionally emit event to refresh feed
+        this.postCreated.emit();
+        
       },
       error: (error) => {
         console.error('Error creating post:', error);

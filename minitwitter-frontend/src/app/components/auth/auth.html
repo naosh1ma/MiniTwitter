@@ -6,15 +6,17 @@
       <div *ngIf="!isLogin">
         <input type="email" [(ngModel)]="registerData.email" name="email" placeholder="Email" required>
       </div>
-      
-      <div>
-        <input type="text" [(ngModel)]="loginRequest.username" name="username" placeholder="Username" required>
+    
+      <div *ngIf="isLogin">
+        <input type="text" [(ngModel)]="loginRequest.username" name="loginUsername" placeholder="Username" required>
+        <input type="password" [(ngModel)]="loginRequest.password" name="loginPassword" placeholder="Password" required>
       </div>
-      
-      <div>
-        <input type="password" [(ngModel)]="loginRequest.password" name="password" placeholder="Password" required>
+    
+      <div *ngIf="!isLogin">
+        <input type="text" [(ngModel)]="registerData.username" name="registerUsername" placeholder="Username" required>
+        <input type="password" [(ngModel)]="registerData.password" name="registerPassword" placeholder="Password" required>
       </div>
-      
+    
       <button type="submit">{{ isLogin ? 'Login' : 'Register' }}</button>
     </form>
     

@@ -2,6 +2,7 @@ package org.art.mt.controller;
 
 import org.art.mt.dto.UserRegistrationDTO;
 import org.art.mt.entity.User;
+import org.art.mt.dto.ApiResponse;
 import org.art.mt.dto.UserDTO;
 import org.art.mt.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +24,12 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody UserRegistrationDTO dto) {
-        if (userService.registerUser(dto.getUsername(), dto.getEmail(), dto.getPassword())) {
-            return ResponseEntity.ok("User registered successfully");
-        }
-        return ResponseEntity.badRequest().body("User registration failed");
-
+public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody UserRegistrationDTO dto) {
+    if (userService.registerUser(dto.getUsername(), dto.getEmail(), dto.getPassword())) {
+        return ResponseEntity.ok(ApiResponse.ok(null, "User registered successfully"));
     }
+    return ResponseEntity.badRequest().body(ApiResponse.error("User registration failed"));
+}
 
     @GetMapping("/{username}")
     public ResponseEntity<UserDTO> getUserByUsername(@PathVariable String username) {
