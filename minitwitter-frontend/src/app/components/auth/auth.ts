@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api';
 import { LoginRequest } from '../../models/login-request';
 import { LoginResponse } from '../../models/login-response';
+import { RegisterResponse } from '../../models/register-response';
 
 @Component({
   selector: 'app-auth',
@@ -29,8 +30,8 @@ export class AuthComponent {
     this.apiService.login(this.loginRequest).subscribe({
       next: (response: LoginResponse) => {
         console.log('Login successful:', response);
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('token', response.data.token); // response.data.token
+        localStorage.setItem('user', JSON.stringify(response.data.user)); // response.data.user
         this.loginSuccess.emit();
       },
       error: (error) => {
@@ -41,8 +42,8 @@ export class AuthComponent {
 
   onRegister() {
     this.apiService.register(this.registerData).subscribe({
-      next: (response: string) => {
-        console.log('Registration successful:', response);
+      next: (response: RegisterResponse) => {
+        console.log('Registration successful:', response.message);
         this.isLogin = true;
       },
       error: (error) => {

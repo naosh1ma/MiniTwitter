@@ -5,6 +5,8 @@ import { User } from '../models/user';
 import { Post } from '../models/post';
 import { LoginRequest } from '../models/login-request';
 import { LoginResponse } from '../models/login-response';
+import { RegisterResponse } from '../models/register-response';
+import { ApiResponse } from '../models/api-response';
 
 @Injectable({
   providedIn: 'root'
@@ -22,13 +24,13 @@ export class ApiService {
     return this.http.post<LoginResponse>(`${this.baseUrl}/auth/login`, loginRequest);
   }
 
-  register(user: any): Observable<string> {
-    return this.http.post<string>(`${this.baseUrl}/users/register`, user);
+  register(user: any): Observable<RegisterResponse> {
+    return this.http.post<RegisterResponse>(`${this.baseUrl}/users/register`, user);
   }
 
   // Posts
-  getPosts(): Observable<{posts: Post[]}> {
-    return this.http.get<{posts: Post[]}>(`${this.baseUrl}/posts/feed`);
+  getPosts(page = 0, size = 20) {
+    return this.http.get<{ posts: Post[] }>(`${this.baseUrl}/posts/feed?page=${page}&size=${size}`);
   }
 
   createPost(post: any): Observable<Post> {

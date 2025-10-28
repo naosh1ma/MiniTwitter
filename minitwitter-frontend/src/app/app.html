@@ -1,12 +1,10 @@
 <app-header (logoutEvent)="onLogout()"></app-header>
-
 <main class="main-content">
   <div *ngIf="!isLoggedIn" class="auth-section">
     <app-auth (loginSuccess)="onLoginSuccess()"></app-auth>
   </div>
-  
   <div *ngIf="isLoggedIn" class="app-section">
-    <app-create-post></app-create-post>
-    <app-feed></app-feed>
+    <app-create-post (postCreated)="feed.loadPosts()"></app-create-post>
+    <app-feed #feed></app-feed>
   </div>
 </main>

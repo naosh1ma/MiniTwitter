@@ -14,18 +14,22 @@ export class FeedComponent implements OnInit {
   posts: Post[] = [];
   loading = false;
 
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService) { }
 
   ngOnInit() {
     this.loadPosts();
   }
 
+  page = 0; size = 20; last = false; 
+
   loadPosts() {
-    this.loading = true;
-    this.apiService.getPosts().subscribe({
-      next: (response) => {
-        this.posts = response.posts;
-        this.loading = false;
+    if (this.last) return;
+    this.apiService.getPosts(this.page, this.size).subscribe({
+      next: (res) => {
+        // Backend sendet { posts: [...] } - nicht { data: { content: [...] } }
+        this.posts = [...this.posts, ...res.posts];
+        this.page = this.page + 1;
+        this.last = res.posts.length < this.size; // Einfache Last-Check
       },
       error: (error) => {
         console.error('Error loading posts:', error);
@@ -33,4 +37,10 @@ export class FeedComponent implements OnInit {
       }
     });
   }
+
+  onPostCreated() {
+    this.page = 0; this.last = false; this.posts = [];
+    this.loadPosts();
+  }
+
 }
