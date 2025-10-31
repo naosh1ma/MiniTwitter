@@ -1,12 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CreatePostComponent } from '../create-post/create-post';
 import { ApiService } from '../../services/api';
 import { Post } from '../../models/post';
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CreatePostComponent],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })

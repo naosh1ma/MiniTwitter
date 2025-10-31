@@ -1,5 +1,7 @@
 <div class="feed-container">
     <h2>MiniTwitter Feed</h2>
+
+    <app-create-post (postCreated)="onPostCreated()"></app-create-post>
     
     <div *ngIf="loading" class="loading">
       Loading posts...
