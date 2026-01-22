@@ -113,7 +113,7 @@ src/
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5433/MiniTwitter
 spring.datasource.username=postgres
-spring.datasource.password=M6950evajo!
+spring.datasource.password=
 ```
 
 ### Redis Configuration
