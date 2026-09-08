@@ -6,6 +6,7 @@ public class PostDTO {
 
     private Long id;
     private String content;
+    private String imageUrl;
     private UserDTO author;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -24,6 +25,8 @@ public class PostDTO {
     public void setId(Long id) {this.id = id;}
     public String getContent() {return content;}
     public void setContent(String content) {this.content = content;}
+    public String getImageUrl() {return imageUrl;}
+    public void setImageUrl(String imageUrl) {this.imageUrl = imageUrl;}
     public UserDTO getAuthor() {return author;}
     public void setAuthor(UserDTO author) {this.author = author;}
     public LocalDateTime getCreatedAt() {return createdAt;}

@@ -24,6 +24,10 @@ export class FeedComponent implements OnInit {
     this.loadPosts();
   }
 
+  get apiOrigin(): string {
+    return this.apiService.apiOrigin;
+  }
+
   get currentUsername(): string | null {
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;

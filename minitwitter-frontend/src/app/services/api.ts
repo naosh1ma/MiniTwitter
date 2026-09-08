@@ -34,8 +34,8 @@ export class ApiService {
     return this.http.get<{ posts: Post[] }>(`${this.baseUrl}/posts/feed?page=${page}&size=${size}`);
   }
 
-  createPost(post: any): Observable<Post> {
-    return this.http.post<Post>(`${this.baseUrl}/posts`, post);
+  createPost(post: any): Observable<ApiResponse<Post>> {
+    return this.http.post<ApiResponse<Post>>(`${this.baseUrl}/posts`, post);
   }
 
   deletePost(id: number): Observable<ApiResponse<void>> {
@@ -44,6 +44,12 @@ export class ApiService {
 
   toggleLike(postId: number): Observable<ApiResponse<{ liked: boolean; likeCount: number }>> {
     return this.http.post<ApiResponse<{ liked: boolean; likeCount: number }>>(`${this.baseUrl}/posts/${postId}/like`, {});
+  }
+
+  attachPostImage(postId: number, file: File): Observable<ApiResponse<Post>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ApiResponse<Post>>(`${this.baseUrl}/posts/${postId}/image`, formData);
   }
 
   getFollowingFeed(page = 0, size = 20) {

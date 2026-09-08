@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -31,15 +32,17 @@ public class PostService {
     private final LikeRepository likeRepository;
     private final FollowRepository followRepository;
     private final SecurityUtil securityUtil;
+    private final FileStorageService fileStorageService;
 
     public PostService(PostRepository postRepository, UserRepository userRepository,
                         LikeRepository likeRepository, FollowRepository followRepository,
-                        SecurityUtil securityUtil) {
+                        SecurityUtil securityUtil, FileStorageService fileStorageService) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.likeRepository = likeRepository;
         this.followRepository = followRepository;
         this.securityUtil = securityUtil;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -62,6 +65,19 @@ public class PostService {
             throw new ForbiddenActionException("You can only delete your own posts");
         }
         postRepository.delete(post);
+    }
+
+    @Transactional
+    public PostDTO attachImage(Long postId, String username, MultipartFile file) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        if (!post.getAuthor().getUsername().equals(username)) {
+            throw new ForbiddenActionException("You can only add an image to your own posts");
+        }
+        String imageUrl = fileStorageService.storeImage(file, "post-" + postId, post.getImageUrl());
+        post.setImageUrl(imageUrl);
+        postRepository.save(post);
+        return convertPostToDTO(post, username);
     }
 
     @Transactional
@@ -131,6 +147,7 @@ public class PostService {
                 authorDTO,
                 post.getCreatedAt(),
                 post.getUpdatedAt());
+        dto.setImageUrl(post.getImageUrl());
         dto.setLikeCount(likeRepository.countByPost(post));
         if (currentUsernameOrNull != null) {
             userRepository.findByUsername(currentUsernameOrNull).ifPresent(user ->

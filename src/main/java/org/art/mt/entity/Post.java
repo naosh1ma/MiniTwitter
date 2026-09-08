@@ -25,6 +25,9 @@ public class Post {
     @Column(nullable = false, length = 280)
     private String content;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User author;
@@ -57,6 +60,8 @@ public class Post {
     public void setId(Long id) {this.id = id;}
     public String getContent() {return content;}
     public void setContent(String content) {this.content = content;}
+    public String getImageUrl() {return imageUrl;}
+    public void setImageUrl(String imageUrl) {this.imageUrl = imageUrl;}
     public User getAuthor() {return author;}
     public void setAuthor(User author) {this.author = author;}
     public LocalDateTime getCreatedAt() {return createdAt;}

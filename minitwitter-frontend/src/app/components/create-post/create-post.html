@@ -10,10 +10,31 @@
       class="w-full resize-none border-0 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
     ></textarea>
 
+    <div *ngIf="imagePreviewUrl" class="relative mt-2 inline-block">
+      <img [src]="imagePreviewUrl" alt="Selected image preview" class="max-h-56 rounded-xl border border-slate-200" />
+      <button
+        type="button"
+        (click)="removeImage()"
+        class="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white hover:bg-black/80"
+      >
+        ✕
+      </button>
+    </div>
+
     <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-3">
-      <span class="text-xs" [class.text-red-500]="postContent.length > 260" [class.text-slate-400]="postContent.length <= 260">
-        {{ postContent.length }}/280
-      </span>
+      <div class="flex items-center gap-3">
+        <span class="text-xs" [class.text-red-500]="postContent.length > 260" [class.text-slate-400]="postContent.length <= 260">
+          {{ postContent.length }}/280
+        </span>
+        <input type="file" (change)="onFileSelected($event)" accept="image/*" #fileInput class="hidden" />
+        <button
+          type="button"
+          (click)="fileInput.click()"
+          class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200"
+        >
+          {{ imageFile ? 'Change photo' : 'Add photo' }}
+        </button>
+      </div>
       <button
         type="submit"
         [disabled]="!postContent.trim() || isSubmitting"

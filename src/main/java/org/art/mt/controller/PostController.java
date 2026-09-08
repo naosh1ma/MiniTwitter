@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 
 @RestController
@@ -60,5 +61,12 @@ public class PostController {
           String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
           Map<String, Object> result = postService.toggleLike(id, username);
           return ResponseEntity.ok(ApiResponse.ok(result, "Like toggled"));
+      }
+
+      @PostMapping("/{id}/image")
+      public ResponseEntity<ApiResponse<PostDTO>> attachImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+          String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+          PostDTO result = postService.attachImage(id, username, file);
+          return ResponseEntity.ok(ApiResponse.ok(result, "Image attached"));
       }
 }

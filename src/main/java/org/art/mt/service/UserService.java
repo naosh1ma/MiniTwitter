@@ -1,6 +1,5 @@
 package org.art.mt.service;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,13 +11,8 @@ import org.art.mt.exception.UserRegistrationException;
 import org.art.mt.repository.FollowRepository;
 import org.art.mt.repository.UserRepository;
 import org.art.mt.entity.User;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,17 +23,17 @@ public class UserService {
     private final FollowRepository followRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtil securityUtil;
+    private final FileStorageService fileStorageService;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    @Value("${app.upload.dir}")
-    private String uploadDir;
-
     public UserService(UserRepository userRepository, FollowRepository followRepository,
-                        PasswordEncoder passwordEncoder, SecurityUtil securityUtil) {
+                        PasswordEncoder passwordEncoder, SecurityUtil securityUtil,
+                        FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.passwordEncoder = passwordEncoder;
         this.securityUtil = securityUtil;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -86,38 +80,13 @@ public class UserService {
 
     @Transactional
     public User updateAvatar(String username, MultipartFile file) {
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("Uploaded file must be an image");
-        }
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        try {
-            Path uploadPath = Path.of(uploadDir);
-            Files.createDirectories(uploadPath);
-
-            String extension = "";
-            String originalName = file.getOriginalFilename();
-            if (originalName != null && originalName.contains(".")) {
-                extension = originalName.substring(originalName.lastIndexOf('.'));
-            }
-            String filename = user.getId() + "-" + UUID.randomUUID() + extension;
-            Files.copy(file.getInputStream(), uploadPath.resolve(filename));
-
-            String previousAvatarUrl = user.getAvatarUrl();
-            if (previousAvatarUrl != null && previousAvatarUrl.startsWith("/uploads/")) {
-                Path previousFile = uploadPath.resolve(previousAvatarUrl.substring("/uploads/".length()));
-                Files.deleteIfExists(previousFile);
-            }
-
-            user.setAvatarUrl("/uploads/" + filename);
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
-            return user;
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to store avatar", e);
-        }
+        String avatarUrl = fileStorageService.storeImage(file, "avatar-" + user.getId(), user.getAvatarUrl());
+        user.setAvatarUrl(avatarUrl);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        return user;
     }
 
     @Transactional
