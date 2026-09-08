@@ -8,5 +8,6 @@ export const routes: Routes = [
   { path: 'auth', component: AuthComponent },
   { path: 'feed', component: FeedComponent },
   { path: 'profile', component: ProfileComponent },
+  { path: 'users/:username', component: ProfileComponent },
   { path: '**', redirectTo: '/feed' }
 ];

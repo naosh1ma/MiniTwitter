@@ -21,6 +21,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     }
 
+    @ExceptionHandler(ForbiddenActionException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbiddenAction(ForbiddenActionException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception e) {
         return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));

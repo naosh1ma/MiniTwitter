@@ -1,69 +1,125 @@
 <!-- minitwitter-frontend/src/app/components/profile/profile.html -->
-<div class="profile-container">
-    <div class="profile-header">
-      <h2>Profile</h2>
-      <button *ngIf="!isEditing" (click)="toggleEdit()" class="edit-btn">Edit Profile</button>
-      <button *ngIf="isEditing" (click)="toggleEdit()" class="cancel-btn">Cancel</button>
+<div class="mx-auto max-w-xl px-4 py-6 sm:px-0">
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="text-xl font-bold text-slate-900">{{ isOwnProfile ? 'Profile' : user?.username }}</h2>
+    <button
+      *ngIf="isOwnProfile && !isEditing"
+      (click)="toggleEdit()"
+      class="rounded-full bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+    >
+      Edit Profile
+    </button>
+    <button
+      *ngIf="isOwnProfile && isEditing"
+      (click)="toggleEdit()"
+      class="rounded-full bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+    >
+      Cancel
+    </button>
+    <button
+      *ngIf="!isOwnProfile && user"
+      (click)="toggleFollow()"
+      [disabled]="followBusy"
+      class="rounded-full px-4 py-1.5 text-sm font-semibold transition disabled:opacity-60"
+      [class.bg-brand-600]="!user.followedByCurrentUser"
+      [class.text-white]="!user.followedByCurrentUser"
+      [class.hover:bg-brand-700]="!user.followedByCurrentUser"
+      [class.bg-slate-100]="user.followedByCurrentUser"
+      [class.text-slate-700]="user.followedByCurrentUser"
+      [class.hover:bg-red-50]="user.followedByCurrentUser"
+      [class.hover:text-red-600]="user.followedByCurrentUser"
+    >
+      {{ user.followedByCurrentUser ? 'Following' : 'Follow' }}
+    </button>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" *ngIf="user">
+    <!-- Avatar Section -->
+    <div class="mb-6 flex flex-col items-center">
+      <img
+        [src]="user.avatarUrl ? (apiOrigin + user.avatarUrl) : '/assets/default-avatar.png'"
+        [alt]="user.username + ' avatar'"
+        class="h-28 w-28 rounded-full border-4 border-slate-100 object-cover"
+      />
+      <div *ngIf="isOwnProfile && isEditing" class="mt-3 flex items-center gap-2">
+        <input type="file" (change)="onFileSelected($event)" accept="image/*" #fileInput class="hidden" />
+        <button
+          (click)="fileInput.click()"
+          class="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
+        >
+          Change Avatar
+        </button>
+        <button
+          *ngIf="avatarFile"
+          (click)="uploadAvatar()"
+          class="rounded-full bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
+        >
+          Upload
+        </button>
+      </div>
+
+      <div class="mt-4 flex gap-6 text-sm">
+        <span><strong class="text-slate-900">{{ user.followerCount || 0 }}</strong> <span class="text-slate-500">Followers</span></span>
+        <span><strong class="text-slate-900">{{ user.followingCount || 0 }}</strong> <span class="text-slate-500">Following</span></span>
+      </div>
     </div>
-  
-    <div class="profile-content" *ngIf="user">
-      <!-- Avatar Section -->
-      <div class="avatar-section">
-        <div class="avatar-container">
-          <img [src]="user.avatarUrl || '/assets/default-avatar.png'" 
-               [alt]="user.username + ' avatar'" 
-               class="avatar">
-          <div *ngIf="isEditing" class="avatar-upload">
-            <input type="file" 
-                   (change)="onFileSelected($event)" 
-                   accept="image/*" 
-                   #fileInput>
-            <button (click)="fileInput.click()" class="upload-btn">Change Avatar</button>
-            <button *ngIf="avatarFile" (click)="uploadAvatar()" class="save-avatar-btn">Upload</button>
-          </div>
+
+    <!-- User Info Section -->
+    <div class="flex flex-col gap-4 border-t border-slate-100 pt-4">
+      <div class="flex items-baseline gap-3">
+        <label class="w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">Username</label>
+        <span class="text-base font-semibold text-slate-900">{{ user.username }}</span>
+      </div>
+
+      <div class="flex items-baseline gap-3" *ngIf="isOwnProfile">
+        <label class="w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">Email</label>
+        <span class="text-sm text-slate-700">{{ user.email }}</span>
+      </div>
+
+      <div class="flex items-baseline gap-3">
+        <label class="w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">Bio</label>
+        <div *ngIf="!isEditing" class="text-sm text-slate-700">
+          {{ user.bio || 'No bio yet' }}
+        </div>
+        <div *ngIf="isOwnProfile && isEditing" class="flex-1">
+          <textarea
+            [(ngModel)]="bio"
+            placeholder="Tell us about yourself..."
+            maxlength="500"
+            rows="3"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+          ></textarea>
         </div>
       </div>
-  
-      <!-- User Info Section -->
-      <div class="user-info">
-        <div class="info-row">
-          <label>Username:</label>
-          <span class="username">{{ user.username }}</span>
-        </div>
-        
-        <div class="info-row">
-          <label>Email:</label>
-          <span class="email">{{ user.email }}</span>
-        </div>
-        
-        <div class="info-row">
-          <label>Bio:</label>
-          <div *ngIf="!isEditing" class="bio-display">
-            <p>{{ user.bio || 'No bio yet' }}</p>
-          </div>
-          <div *ngIf="isEditing" class="bio-edit">
-            <textarea [(ngModel)]="bio" 
-                      placeholder="Tell us about yourself..." 
-                      maxlength="500"
-                      rows="4"></textarea>
-          </div>
-        </div>
-        
-        <div class="info-row">
-          <label>Member since:</label>
-          <span class="join-date">{{ user.createdAt | date:'medium' }}</span>
-        </div>
-      </div>
-  
-      <!-- Action Buttons -->
-      <div class="actions" *ngIf="isEditing">
-        <button (click)="updateProfile()" class="save-btn">Save Changes</button>
-        <button (click)="toggleEdit()" class="cancel-btn">Cancel</button>
+
+      <div class="flex items-baseline gap-3">
+        <label class="w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">Member since</label>
+        <span class="text-sm text-slate-700">{{ user.createdAt | date:'medium' }}</span>
       </div>
     </div>
-  
-    <!-- Loading State -->
-    <div *ngIf="!user" class="loading">
-      <p>Loading profile...</p>
+
+    <!-- Action Buttons -->
+    <div class="mt-6 flex justify-center gap-3" *ngIf="isOwnProfile && isEditing">
+      <button
+        (click)="updateProfile()"
+        class="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+      >
+        Save Changes
+      </button>
+      <button
+        (click)="toggleEdit()"
+        class="rounded-full bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+      >
+        Cancel
+      </button>
     </div>
   </div>
+
+  <!-- Loading / Error State -->
+  <div *ngIf="!user && error" class="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+    Couldn't load this profile.
+  </div>
+  <div *ngIf="!user && !error" class="mt-6 text-center text-sm text-slate-500">
+    Loading profile...
+  </div>
+</div>

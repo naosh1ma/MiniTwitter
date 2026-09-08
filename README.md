@@ -1,33 +1,29 @@
 # MiniTwitter 🐦
 
-A lightweight social feed platform built with Spring Boot, featuring user management, posts, and real-time feeds.
+A lightweight social feed platform with a Spring Boot backend and an Angular frontend: user registration, JWT-based login, and a public post feed.
 
 ## 🚀 Features
 
-- **User Management**: Registration, login, JWT-based authentication
-- **Posts**: Create, read, like, and comment on posts
-- **Feeds**: Home timeline and user-specific timelines
-- **Real-time**: Kafka-based event streaming
-- **Caching**: Redis for performance optimization
-- **Monitoring**: Prometheus metrics and Grafana dashboards
+- **User Management**: Registration, login, JWT-based authentication, profile view/edit
+- **Posts**: Create posts and browse a public feed (no likes/comments yet — see Roadmap)
+- **Monitoring**: Prometheus metrics and Grafana dashboards (infra provisioned, not yet wired into app code)
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Java 25, Spring Boot 3.5.6
-- **Frontend**: Angular (planned)
+- **Backend**: Java 25, Spring Boot 4.1.1, Spring Security, Spring Data JPA
+- **Frontend**: Angular 20 (standalone components)
 - **Database**: PostgreSQL 16
-- **Cache**: Redis 7
-- **Message Queue**: Apache Kafka
-- **Security**: JWT Authentication
-- **Monitoring**: Prometheus, Grafana
-- **Containerization**: Docker, Docker Compose
+- **Cache / Streaming**: Redis 7, Apache Kafka (provisioned via Docker Compose; not yet used by application code)
+- **Security**: JWT authentication (`jjwt`), BCrypt password hashing
+- **Monitoring**: Prometheus, Grafana, Spring Boot Actuator
+- **Containerization**: Docker / Podman, Docker Compose
 
 ## 📋 Prerequisites
 
 - Java 25 or higher
-- Docker and Docker Compose
-- Maven (or use included Maven Wrapper)
-- Node.js and npm (for frontend development)
+- Node.js 20.19+ or 22+ and npm (for frontend development)
+- Docker or Podman + Compose (for Postgres and the optional infra stack)
+- Maven (or use the included Maven Wrapper, `./mvnw`)
 
 ## 🚀 Quick Start
 
@@ -37,142 +33,130 @@ git clone https://github.com/naosh1ma/MiniTwitter.git
 cd MiniTwitter
 ```
 
-### 2. Start Infrastructure Services
+### 2. Start Postgres (and optional infra)
 ```bash
-docker-compose up -d
+docker-compose up -d postgres
 ```
+This starts just the database on port 5433, matching `application.properties`. The compose file also defines `backend`, `frontend`, and a full monitoring/logging stack (Redis, Kafka, Prometheus, Grafana, ELK) — see [Docker Services](#-docker-services) if you want to run everything containerized instead of the local dev workflow below.
 
-This will start:
-- PostgreSQL (Port 5433)
-- Redis (Port 6379)
-- Kafka + Zookeeper (Port 9092)
-- Prometheus (Port 9090)
-- Grafana (Port 3000)
-- ELK Stack: Elasticsearch (Port 9200), Logstash (Port 5044), Kibana (Port 5601)
-
-### 3. Build and Run the Application
+### 3. Run the Backend
 ```bash
-# Using Maven Wrapper
-./mvnw clean package -DskipTests
-java -jar target/MiniTwitter-0.0.1-SNAPSHOT.jar
-
-# Or using Maven directly
-mvn clean package -DskipTests
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
+Starts on `http://localhost:8080`. On first run, Hibernate creates the `users` and `posts` tables automatically (`spring.jpa.hibernate.ddl-auto=update`).
 
-### 4. Verify Installation
-The application will start on port 8080. You can test the API endpoints using Postman or curl.
+### 4. Run the Frontend
+```bash
+cd minitwitter-frontend
+npm install
+npm start
+```
+Starts on `http://localhost:4200` and proxies API calls to `http://localhost:8080/api`.
 
 ## 📚 API Endpoints
 
-### User Management
-- `POST /api/users/register` - Register a new user
-- `GET /api/users/{username}` - Get user by username
+### Auth
+- `POST /api/auth/login` — Log in, returns a JWT + user info
+- `POST /api/auth/validate` — Validate a `Bearer` token
+
+### Users
+- `POST /api/users/register` — Register a new user
+- `GET /api/users/{username}` — Get a user's public info
+- `GET /api/users/profile` — Get the logged-in user's profile *(requires auth)*
+- `PUT /api/users/profile` — Update the logged-in user's bio *(requires auth)*
+
+### Posts
+- `POST /api/posts` — Create a post *(requires auth)*
+- `GET /api/posts/feed?page=0&size=20` — Paginated public feed *(no auth required)*
 
 ### Example Usage
 
-**Register a User:**
+**Register a user:**
 ```bash
 curl -X POST http://localhost:8080/api/users/register \
   -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "email": "test@example.com",
-    "password": "password123"
-  }'
+  -d '{"username": "testuser", "email": "test@example.com", "password": "password123"}'
 ```
 
-**Get User:**
+**Log in:**
 ```bash
-curl http://localhost:8080/api/users/testuser
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "password": "password123"}'
+```
+
+**Create a post (with the token from login):**
+```bash
+curl -X POST http://localhost:8080/api/posts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"content": "Hello MiniTwitter!"}'
 ```
 
 ## 🏗️ Project Structure
 
 ```
-src/
-├── main/
-│   ├── java/org/art/mt/
-│   │   ├── config/          # Configuration classes
-│   │   ├── controller/      # REST controllers
-│   │   ├── entity/          # JPA entities
-│   │   ├── repository/      # Data repositories
-│   │   ├── service/         # Business logic
-│   │   └── MTApplication.java
-│   └── resources/
-│       └── application.properties
-├── docker-compose.yml       # Infrastructure services
-├── prometheus.yml          # Prometheus configuration
-└── pom.xml                 # Maven dependencies
+.
+├── src/main/java/org/art/mt/
+│   ├── config/          # Security, CORS, JWT filter
+│   ├── controller/      # REST controllers
+│   ├── dto/              # Request/response DTOs
+│   ├── entity/           # JPA entities
+│   ├── exception/        # Exception handling
+│   ├── repository/       # Data repositories
+│   ├── service/          # Business logic
+│   └── MTApplication.java
+├── src/main/resources/application.properties
+├── minitwitter-frontend/  # Angular app (standalone components)
+│   └── src/app/
+│       ├── components/    # auth, feed, create-post, header, profile
+│       ├── services/       # API client
+│       ├── interceptors/   # JWT auth interceptor
+│       └── models/
+├── Dockerfile             # Backend image
+├── minitwitter-frontend/Dockerfile  # Frontend image
+├── docker-compose.yml     # Full stack: app + infra + monitoring
+└── pom.xml
 ```
 
 ## 🔧 Configuration
 
-### Database Configuration
+`src/main/resources/application.properties` holds dev-only, hardcoded values — fine for local development, but replace them before deploying anywhere reachable:
+
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5433/MiniTwitter
 spring.datasource.username=postgres
 spring.datasource.password=devpass123
-```
 
-### Redis Configuration
-```properties
-spring.redis.host=localhost
-spring.redis.port=6379
-```
-
-### Kafka Configuration
-```properties
-spring.kafka.bootstrap-servers=localhost:9092
-spring.kafka.consumer.group-id=minitwitter-consumer
+jwt.secret=minitwitter-dev-secret-change-me
+jwt.expiration=86400000
 ```
 
 ## 🐳 Docker Services
 
+`docker-compose.yml` defines the full stack — application and infrastructure:
+
 | Service | Port | Description |
 |---------|------|-------------|
-| PostgreSQL | 5433 | Main database |
-| Redis | 6379 | Caching layer |
-| Kafka | 9092 | Message streaming |
-| Prometheus | 9090 | Metrics collection |
-| Grafana | 3000 | Monitoring dashboard |
-| Elasticsearch | 9200 | Log storage and search |
-| Logstash | 5044 | Log processing |
-| Kibana | 5601 | Log visualization |
+| frontend | 4200 | Angular app (Nginx) |
+| backend | 8080 | Spring Boot API |
+| postgres | 5433 | Main database |
+| redis | 6379 | Caching layer (provisioned, not yet used by the app) |
+| kafka | 9092 | Message streaming (provisioned, not yet used by the app) |
+| prometheus | 9090 | Metrics collection |
+| grafana | 3000 | Monitoring dashboard |
+| elasticsearch | 9200 | Log storage and search |
+| logstash | 5044 | Log processing |
+| kibana | 5601 | Log visualization |
 
-## 📊 Monitoring
+Run `docker-compose up -d` to start everything, or target specific services (e.g. `docker-compose up -d postgres`) for the local dev workflow above.
 
-The application includes comprehensive monitoring capabilities:
-- **Prometheus**: Metrics collection and storage
-- **Grafana**: Visualization dashboards
-- **ELK Stack**: Centralized logging with Elasticsearch, Logstash, and Kibana
-- **Spring Boot Actuator**: Health checks and application metrics
+## 🗺️ Roadmap
 
-## 🎯 Project Goals
-
-This MiniTwitter project aims to build a scalable social media platform with the following key features:
-
-### Core Features (MVP)
-- **User Management**: Secure registration, login, and profile management
-- **Posts System**: Create, read, like, and comment on posts (tweets)
-- **Feed Generation**: Personalized home timeline and user timelines
-- **Real-time Updates**: Event-driven architecture with Kafka
-- **Performance**: Redis caching for fast feed delivery
-
-### Architecture Goals
-- **Scalable**: Designed to handle growth from thousands to millions of users
-- **Reliable**: Strong consistency for writes, eventual consistency for feeds
-- **Observable**: Comprehensive monitoring with metrics and logging
-- **Cloud-Ready**: Containerized deployment with infrastructure as code
-
-### Technology Integration
-- **Backend**: Spring Boot with microservices architecture
-- **Frontend**: Angular SPA with modern UI/UX
-- **Data**: PostgreSQL for persistence, Redis for caching
-- **Streaming**: Kafka for real-time event processing
-- **Monitoring**: Prometheus and Grafana for observability
-- **Deployment**: Docker containers with cloud deployment ready
+Known gaps, not yet implemented:
+- Likes and comments on posts
+- Avatar upload (`POST /api/users/profile/avatar` — frontend calls it, backend doesn't implement it yet)
+- Redis caching and Kafka event streaming are provisioned in Docker Compose but not yet wired into the application
 
 ## 🤝 Contributing
 
@@ -189,7 +173,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Arthur** - [@naosh1ma](https://github.com/naosh1ma)
-
----
-
-**Happy Coding! 🚀**

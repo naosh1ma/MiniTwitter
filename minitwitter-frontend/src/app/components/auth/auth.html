@@ -1,26 +1,70 @@
+<div class="flex min-h-[calc(100vh-56px)] items-center justify-center bg-slate-50 px-4">
+  <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <h2 class="mb-6 text-center text-2xl font-bold text-slate-900">{{ isLogin ? 'Login' : 'Register' }}</h2>
 
-<div class="auth-container">
-    <h2>{{ isLogin ? 'Login' : 'Register' }}</h2>
-    
-    <form (ngSubmit)="isLogin ? onLogin() : onRegister()">
+    <form (ngSubmit)="isLogin ? onLogin() : onRegister()" class="flex flex-col gap-4">
       <div *ngIf="!isLogin">
-        <input type="email" [(ngModel)]="registerData.email" name="email" placeholder="Email" required>
+        <input
+          type="email"
+          [(ngModel)]="registerData.email"
+          name="email"
+          placeholder="Email"
+          required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        />
       </div>
-    
-      <div *ngIf="isLogin">
-        <input type="text" [(ngModel)]="loginRequest.username" name="loginUsername" placeholder="Username" required>
-        <input type="password" [(ngModel)]="loginRequest.password" name="loginPassword" placeholder="Password" required>
+
+      <div *ngIf="isLogin" class="flex flex-col gap-4">
+        <input
+          type="text"
+          [(ngModel)]="loginRequest.username"
+          name="loginUsername"
+          placeholder="Username"
+          required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        />
+        <input
+          type="password"
+          [(ngModel)]="loginRequest.password"
+          name="loginPassword"
+          placeholder="Password"
+          required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        />
       </div>
-    
-      <div *ngIf="!isLogin">
-        <input type="text" [(ngModel)]="registerData.username" name="registerUsername" placeholder="Username" required>
-        <input type="password" [(ngModel)]="registerData.password" name="registerPassword" placeholder="Password" required>
+
+      <div *ngIf="!isLogin" class="flex flex-col gap-4">
+        <input
+          type="text"
+          [(ngModel)]="registerData.username"
+          name="registerUsername"
+          placeholder="Username"
+          required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        />
+        <input
+          type="password"
+          [(ngModel)]="registerData.password"
+          name="registerPassword"
+          placeholder="Password"
+          required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        />
       </div>
-    
-      <button type="submit">{{ isLogin ? 'Login' : 'Register' }}</button>
+
+      <button
+        type="submit"
+        class="mt-2 w-full rounded-full bg-brand-600 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+      >
+        {{ isLogin ? 'Login' : 'Register' }}
+      </button>
     </form>
-    
-    <button (click)="toggleMode()">
+
+    <button
+      (click)="toggleMode()"
+      class="mt-4 w-full text-center text-sm font-medium text-brand-600 hover:text-brand-700"
+    >
       {{ isLogin ? 'Need an account? Register' : 'Have an account? Login' }}
     </button>
   </div>
+</div>

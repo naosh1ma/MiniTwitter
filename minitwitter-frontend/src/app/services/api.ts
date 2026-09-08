@@ -14,6 +14,7 @@ import { ApiResponse } from '../models/api-response';
 
 export class ApiService {
   private baseUrl = 'http://localhost:8080/api';  // Spring Boot API URL
+  readonly apiOrigin = 'http://localhost:8080';  // Used to resolve server-relative URLs like avatarUrl
 
   constructor(private http: HttpClient) { } // HTTP Client injizieren
 
@@ -35,6 +36,26 @@ export class ApiService {
 
   createPost(post: any): Observable<Post> {
     return this.http.post<Post>(`${this.baseUrl}/posts`, post);
+  }
+
+  deletePost(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/posts/${id}`);
+  }
+
+  toggleLike(postId: number): Observable<ApiResponse<{ liked: boolean; likeCount: number }>> {
+    return this.http.post<ApiResponse<{ liked: boolean; likeCount: number }>>(`${this.baseUrl}/posts/${postId}/like`, {});
+  }
+
+  getFollowingFeed(page = 0, size = 20) {
+    return this.http.get<{ posts: Post[] }>(`${this.baseUrl}/posts/feed/following?page=${page}&size=${size}`);
+  }
+
+  followUser(username: string): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/users/${username}/follow`, {});
+  }
+
+  unfollowUser(username: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/users/${username}/follow`);
   }
 
   // Profile Management

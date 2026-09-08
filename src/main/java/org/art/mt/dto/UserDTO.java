@@ -9,6 +9,9 @@ public class UserDTO {
     private String bio;
     private String avatarUrl;
     private LocalDateTime createdAt;
+    private long followerCount;
+    private long followingCount;
+    private boolean followedByCurrentUser;
 
     public UserDTO() {}
     
@@ -55,5 +58,23 @@ public class UserDTO {
     }
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    public long getFollowerCount() {
+        return followerCount;
+    }
+    public void setFollowerCount(long followerCount) {
+        this.followerCount = followerCount;
+    }
+    public long getFollowingCount() {
+        return followingCount;
+    }
+    public void setFollowingCount(long followingCount) {
+        this.followingCount = followingCount;
+    }
+    public boolean isFollowedByCurrentUser() {
+        return followedByCurrentUser;
+    }
+    public void setFollowedByCurrentUser(boolean followedByCurrentUser) {
+        this.followedByCurrentUser = followedByCurrentUser;
     }
 }

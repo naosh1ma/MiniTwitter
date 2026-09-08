@@ -5,4 +5,7 @@ export interface User {
     bio?: string;
     avatarUrl?: string;
     createdAt: string;
+    followerCount?: number;
+    followingCount?: number;
+    followedByCurrentUser?: boolean;
   }

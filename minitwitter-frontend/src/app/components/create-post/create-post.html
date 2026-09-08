@@ -1,14 +1,24 @@
-<div class="create-post-container">
-  <h3>What's happening?</h3>
-
+<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
   <form (ngSubmit)="onSubmit()">
-    <textarea [(ngModel)]="postContent" name="postContent" placeholder="Share your thoughts..." maxlength="280" rows="4"
-      required>
-</textarea>
+    <textarea
+      [(ngModel)]="postContent"
+      name="postContent"
+      placeholder="What's happening?"
+      maxlength="280"
+      rows="3"
+      required
+      class="w-full resize-none border-0 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+    ></textarea>
 
-    <div class="post-actions">
-      <span class="char-count">{{ postContent.length }}/280</span>
-      <button type="submit" [disabled]="!postContent.trim() || isSubmitting" class="post-button">
+    <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-3">
+      <span class="text-xs" [class.text-red-500]="postContent.length > 260" [class.text-slate-400]="postContent.length <= 260">
+        {{ postContent.length }}/280
+      </span>
+      <button
+        type="submit"
+        [disabled]="!postContent.trim() || isSubmitting"
+        class="rounded-full bg-brand-600 px-5 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+      >
         {{ isSubmitting ? 'Posting...' : 'Post' }}
       </button>
     </div>
