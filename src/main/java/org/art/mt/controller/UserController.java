@@ -1,14 +1,17 @@
 package org.art.mt.controller;
 
+import org.art.mt.dto.ProfileUpdateDTO;
 import org.art.mt.dto.UserRegistrationDTO;
 import org.art.mt.entity.User;
 import org.art.mt.dto.ApiResponse;
 import org.art.mt.dto.UserDTO;
 import org.art.mt.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +40,21 @@ public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody UserRegist
                 .map(User -> convertToDTO(User))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<UserDTO>> getProfile() {
+        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return userService.getUserByUsername(username)
+                .map(user -> ResponseEntity.ok(ApiResponse.ok(convertToDTO(user), "Profile fetched")))
+                .orElse(ResponseEntity.status(404).body(ApiResponse.error("User not found")));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<UserDTO>> updateProfile(@Valid @RequestBody ProfileUpdateDTO dto) {
+        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User updated = userService.updateProfile(username, dto.getBio(), dto.getAvatarUrl());
+        return ResponseEntity.ok(ApiResponse.ok(convertToDTO(updated), "Profile updated"));
     }
 
     private UserDTO convertToDTO(User user) {

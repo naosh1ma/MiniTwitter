@@ -1,34 +1,47 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { HeaderComponent } from './components/header/header';
-import { AuthComponent } from './components/auth/auth';
-import { FeedComponent } from './components/feed/feed';
-import { CreatePostComponent } from './components/create-post/create-post';
+import { ApiService } from './services/api';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, HeaderComponent, AuthComponent, FeedComponent, CreatePostComponent],
+  imports: [
+    CommonModule, 
+    RouterModule, 
+    FormsModule,
+    HeaderComponent
+  ],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })
-export class AppComponent {
-  isLoggedIn = false;
+export class AppComponent implements OnInit {
+  isAuthenticated = false;
+  user: any = null;
 
-  constructor() {
+  constructor(private apiService: ApiService) {}
+
+  ngOnInit() {
     this.checkAuthStatus();
   }
 
   checkAuthStatus() {
-    const token = localStorage.getItem('token');
-    this.isLoggedIn = !!token;
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        this.user = JSON.parse(userStr);
+        this.isAuthenticated = true;
+      } catch (e) {
+        console.error('Invalid user data in localStorage');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    }
   }
 
   onLoginSuccess() {
-    this.isLoggedIn = true;
-  }
-
-  onLogout() {
-    this.isLoggedIn = false;
+    this.checkAuthStatus();
   }
 }

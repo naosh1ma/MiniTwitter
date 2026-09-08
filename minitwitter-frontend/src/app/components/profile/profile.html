@@ -1,0 +1,69 @@
+<!-- minitwitter-frontend/src/app/components/profile/profile.html -->
+<div class="profile-container">
+    <div class="profile-header">
+      <h2>Profile</h2>
+      <button *ngIf="!isEditing" (click)="toggleEdit()" class="edit-btn">Edit Profile</button>
+      <button *ngIf="isEditing" (click)="toggleEdit()" class="cancel-btn">Cancel</button>
+    </div>
+  
+    <div class="profile-content" *ngIf="user">
+      <!-- Avatar Section -->
+      <div class="avatar-section">
+        <div class="avatar-container">
+          <img [src]="user.avatarUrl || '/assets/default-avatar.png'" 
+               [alt]="user.username + ' avatar'" 
+               class="avatar">
+          <div *ngIf="isEditing" class="avatar-upload">
+            <input type="file" 
+                   (change)="onFileSelected($event)" 
+                   accept="image/*" 
+                   #fileInput>
+            <button (click)="fileInput.click()" class="upload-btn">Change Avatar</button>
+            <button *ngIf="avatarFile" (click)="uploadAvatar()" class="save-avatar-btn">Upload</button>
+          </div>
+        </div>
+      </div>
+  
+      <!-- User Info Section -->
+      <div class="user-info">
+        <div class="info-row">
+          <label>Username:</label>
+          <span class="username">{{ user.username }}</span>
+        </div>
+        
+        <div class="info-row">
+          <label>Email:</label>
+          <span class="email">{{ user.email }}</span>
+        </div>
+        
+        <div class="info-row">
+          <label>Bio:</label>
+          <div *ngIf="!isEditing" class="bio-display">
+            <p>{{ user.bio || 'No bio yet' }}</p>
+          </div>
+          <div *ngIf="isEditing" class="bio-edit">
+            <textarea [(ngModel)]="bio" 
+                      placeholder="Tell us about yourself..." 
+                      maxlength="500"
+                      rows="4"></textarea>
+          </div>
+        </div>
+        
+        <div class="info-row">
+          <label>Member since:</label>
+          <span class="join-date">{{ user.createdAt | date:'medium' }}</span>
+        </div>
+      </div>
+  
+      <!-- Action Buttons -->
+      <div class="actions" *ngIf="isEditing">
+        <button (click)="updateProfile()" class="save-btn">Save Changes</button>
+        <button (click)="toggleEdit()" class="cancel-btn">Cancel</button>
+      </div>
+    </div>
+  
+    <!-- Loading State -->
+    <div *ngIf="!user" class="loading">
+      <p>Loading profile...</p>
+    </div>
+  </div>

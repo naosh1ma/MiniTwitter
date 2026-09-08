@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.art.mt.repository.UserRepository;
 import org.art.mt.entity.User;
 import org.art.mt.exception.UserRegistrationException;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,19 @@ public class UserService {
 
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    @Transactional
+    public User updateProfile(String username, String bio, String avatarUrl) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setBio(bio);
+        if (avatarUrl != null) {
+            user.setAvatarUrl(avatarUrl);
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        return user;
     }
 
     public boolean updateUser(User user) {

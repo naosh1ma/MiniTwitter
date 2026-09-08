@@ -7,7 +7,11 @@
       Loading posts...
     </div>
     
-    <div *ngIf="!loading && posts.length === 0" class="no-posts">
+    <div *ngIf="error" class="error">
+      Couldn't load the feed. Please try again later.
+    </div>
+
+    <div *ngIf="!loading && !error && posts.length === 0" class="no-posts">
       No posts yet. Be the first to post!
     </div>
     

@@ -14,6 +14,7 @@ import { Post } from '../../models/post';
 export class FeedComponent implements OnInit {
   posts: Post[] = [];
   loading = false;
+  error = false;
 
   constructor(private apiService: ApiService) { }
 
@@ -21,10 +22,11 @@ export class FeedComponent implements OnInit {
     this.loadPosts();
   }
 
-  page = 0; size = 20; last = false; 
+  page = 0; size = 20; last = false;
 
   loadPosts() {
     if (this.last) return;
+    this.error = false;
     this.apiService.getPosts(this.page, this.size).subscribe({
       next: (res) => {
         // Backend sendet { posts: [...] } - nicht { data: { content: [...] } }
@@ -35,6 +37,7 @@ export class FeedComponent implements OnInit {
       error: (error) => {
         console.error('Error loading posts:', error);
         this.loading = false;
+        this.error = true;
       }
     });
   }

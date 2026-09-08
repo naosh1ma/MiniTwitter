@@ -1,10 +1,8 @@
 import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService } from '../../services/api';
-import { LoginRequest } from '../../models/login-request';
-import { LoginResponse } from '../../models/login-response';
-import { RegisterResponse } from '../../models/register-response';
 
 @Component({
   selector: 'app-auth',
@@ -17,22 +15,20 @@ export class AuthComponent {
   @Output() loginSuccess = new EventEmitter<void>();
   
   isLogin = true;
-  loginRequest: LoginRequest = { username: '', password: '' };
+  loginRequest = { username: '', password: '' };
   registerData = { username: '', email: '', password: '' };
 
-  constructor(private apiService: ApiService) {}
-
-  toggleMode() {
-    this.isLogin = !this.isLogin;
-  }
+  constructor(private apiService: ApiService, private router: Router) {}
 
   onLogin() {
     this.apiService.login(this.loginRequest).subscribe({
-      next: (response: LoginResponse) => {
-        console.log('Login successful:', response);
-        localStorage.setItem('token', response.data.token); // response.data.token
-        localStorage.setItem('user', JSON.stringify(response.data.user)); // response.data.user
-        this.loginSuccess.emit();
+      next: (response) => {
+        if (response.success) {
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          this.loginSuccess.emit();
+          this.router.navigate(['/feed']);
+        }
       },
       error: (error) => {
         console.error('Login failed:', error);
@@ -40,11 +36,17 @@ export class AuthComponent {
     });
   }
 
+  toggleMode() {
+    this.isLogin = !this.isLogin;
+  }
+
   onRegister() {
     this.apiService.register(this.registerData).subscribe({
-      next: (response: RegisterResponse) => {
-        console.log('Registration successful:', response.message);
-        this.isLogin = true;
+      next: (response) => {
+        if (response.success) {
+          this.isLogin = true;
+          this.registerData = { username: '', email: '', password: '' };
+        }
       },
       error: (error) => {
         console.error('Registration failed:', error);

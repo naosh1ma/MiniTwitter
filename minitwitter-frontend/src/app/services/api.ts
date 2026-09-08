@@ -20,7 +20,7 @@ export class ApiService {
   // Authentication
   //           Parameter                   Rückgabewert
   login(loginRequest: LoginRequest): Observable<LoginResponse> {
-  //                                       URL zu Spring Boot API       Parameter
+    //                                       URL zu Spring Boot API       Parameter
     return this.http.post<LoginResponse>(`${this.baseUrl}/auth/login`, loginRequest);
   }
 
@@ -36,4 +36,26 @@ export class ApiService {
   createPost(post: any): Observable<Post> {
     return this.http.post<Post>(`${this.baseUrl}/posts`, post);
   }
+
+  // Profile Management
+  getProfile(): Observable<ApiResponse<User>> {
+    return this.http.get<ApiResponse<User>>(`${this.baseUrl}/users/profile`);
+  }
+
+  updateProfile(profileData: { bio: string; avatarUrl?: string }): Observable<ApiResponse<User>> {
+    return this.http.put<ApiResponse<User>>(`${this.baseUrl}/users/profile`, profileData);
+  }
+
+  uploadAvatar(file: File): Observable<ApiResponse<User>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ApiResponse<User>>(`${this.baseUrl}/users/profile/avatar`, formData);
+  }
+
+  getUserByUsername(username: string): Observable<ApiResponse<User>> {
+    return this.http.get<ApiResponse<User>>(`${this.baseUrl}/users/${username}`);
+  }
+
+
+
 }
