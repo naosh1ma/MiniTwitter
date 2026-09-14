@@ -85,6 +85,18 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- Spring Boot 4 split @AutoConfigureMockMvc etc. out of
+                 spring-boot-test-autoconfigure into this per-technology module. -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
@@ -102,6 +114,16 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <!-- Spring Boot 4's default JSON support moved to Jackson 3.x
+                 (tools.jackson), a different class than the classic
+                 com.fasterxml.jackson.databind.ObjectMapper - FeedCacheService
+                 needs the classic Jackson 2.x (already pulled in transitively
+                 by jjwt-jackson above) plus its Java 8 date/time module. -->
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.21.5</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -14,6 +14,7 @@ import { ApiService } from '../../services/api';
 export class HeaderComponent implements OnInit {
   isAuthenticated = false;
   user: any = null;
+  unreadCount = 0;
 
   constructor(private apiService: ApiService, private router: Router) {}
 
@@ -32,12 +33,20 @@ export class HeaderComponent implements OnInit {
       try {
         this.user = JSON.parse(userStr);
         this.isAuthenticated = true;
+        this.refreshUnreadCount();
       } catch (e) {
         console.error('Invalid user data in localStorage');
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
     }
+  }
+
+  refreshUnreadCount() {
+    this.apiService.getUnreadNotificationCount().subscribe({
+      next: (res) => this.unreadCount = res.data?.count ?? 0,
+      error: () => {} // Notification badge is non-critical; a failed fetch just leaves the count stale.
+    });
   }
 
   logout() {

@@ -1,0 +1,33 @@
+<div class="mx-auto max-w-xl px-4 py-6 sm:px-0">
+  <h2 class="mb-4 text-xl font-bold text-slate-900">Notifications</h2>
+
+  <div *ngIf="loading" class="mt-6 text-center text-sm text-slate-500">
+    Loading notifications...
+  </div>
+
+  <div *ngIf="error" class="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+    Couldn't load notifications. Please try again later.
+  </div>
+
+  <div *ngIf="!loading && !error && notifications.length === 0" class="mt-6 text-center text-sm text-slate-500">
+    No notifications yet.
+  </div>
+
+  <ul class="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+    <li
+      *ngFor="let notification of notifications"
+      (click)="markRead(notification)"
+      class="flex cursor-pointer items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50"
+      [class.bg-brand-50]="!notification.read"
+    >
+      <span class="text-lg">{{ notification.type === 'LIKE' ? '❤️' : '👤' }}</span>
+      <div class="flex-1">
+        <a [routerLink]="['/users', notification.actor.username]" class="font-semibold text-slate-900 hover:underline" (click)="$event.stopPropagation()">
+          {{ notification.actor.username }}
+        </a>
+        <span class="text-slate-600"> {{ actionLabel(notification) }}</span>
+      </div>
+      <span *ngIf="!notification.read" class="h-2 w-2 flex-shrink-0 rounded-full bg-brand-600"></span>
+    </li>
+  </ul>
+</div>

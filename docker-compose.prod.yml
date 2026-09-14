@@ -1,0 +1,128 @@
+## Production compose for a single ~4GB VPS. Kafka and Redis are load-bearing
+## here (notifications, feed cache), not just provisioned - hence the heap
+## tuning below and the VPS sizing note in the README. Caddy is the only
+## service exposed to the host; backend/postgres/redis/kafka stay on the
+## internal network and are reached only through it or by other containers.
+##
+## Secrets (SPRING_DATASOURCE_PASSWORD, JWT_SECRET) are supplied here via
+## environment values you must change before deploying - they are NOT read
+## from application.properties in this file, which keeps its simple
+## localhost-only dev defaults untouched.
+
+services:
+
+  frontend:
+    build:
+      context: ./minitwitter-frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - minitwitter-network
+
+  backend:
+    build: .
+    restart: unless-stopped
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/MiniTwitter
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=CHANGE_ME_BEFORE_DEPLOY
+      - JWT_SECRET=CHANGE_ME_BEFORE_DEPLOY
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - APP_CORS_ALLOWED_ORIGIN=https://your-domain.example
+      - JAVA_TOOL_OPTIONS=-Xmx384m -Xms256m
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - minitwitter-network
+    # No host port mapping - Caddy is the only public ingress, reaching the
+    # backend over the internal Docker network at backend:8080.
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: CHANGE_ME_BEFORE_DEPLOY
+      POSTGRES_DB: MiniTwitter
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - minitwitter-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - minitwitter-network
+
+  # Single-node KRaft-mode Kafka: no Zookeeper. This is a real modernization
+  # of the dev-only docker-compose.yml's legacy Zookeeper-based setup, not a
+  # scope-driven workaround - KRaft has been the recommended mode since
+  # Kafka 3.3 and drops an entire stateful service from the deployment.
+  # CLUSTER_ID below is a fixed placeholder (any valid base64 UUID works for
+  # a single-node deployment) - generate your own with
+  # `kafka-storage.sh random-uuid` for a real deployment.
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    restart: unless-stopped
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - minitwitter-network
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - minitwitter-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  minitwitter-network:
+    driver: bridge

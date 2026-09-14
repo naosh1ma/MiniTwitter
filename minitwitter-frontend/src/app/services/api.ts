@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { User } from '../models/user';
 import { Post } from '../models/post';
+import { Comment } from '../models/comment';
+import { AppNotification } from '../models/notification';
 import { LoginRequest } from '../models/login-request';
 import { LoginResponse } from '../models/login-response';
 import { RegisterResponse } from '../models/register-response';
@@ -52,6 +54,18 @@ export class ApiService {
     return this.http.post<ApiResponse<Post>>(`${this.baseUrl}/posts/${postId}/image`, formData);
   }
 
+  getComments(postId: number): Observable<ApiResponse<Comment[]>> {
+    return this.http.get<ApiResponse<Comment[]>>(`${this.baseUrl}/posts/${postId}/comments`);
+  }
+
+  addComment(postId: number, content: string): Observable<ApiResponse<Comment>> {
+    return this.http.post<ApiResponse<Comment>>(`${this.baseUrl}/posts/${postId}/comments`, { content });
+  }
+
+  deleteComment(postId: number, commentId: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/posts/${postId}/comments/${commentId}`);
+  }
+
   getFollowingFeed(page = 0, size = 20) {
     return this.http.get<{ posts: Post[] }>(`${this.baseUrl}/posts/feed/following?page=${page}&size=${size}`);
   }
@@ -83,6 +97,17 @@ export class ApiService {
     return this.http.get<ApiResponse<User>>(`${this.baseUrl}/users/${username}`);
   }
 
+  // Notifications
+  getNotifications(page = 0, size = 20): Observable<ApiResponse<{ content: AppNotification[] }>> {
+    return this.http.get<ApiResponse<{ content: AppNotification[] }>>(`${this.baseUrl}/notifications?page=${page}&size=${size}`);
+  }
 
+  getUnreadNotificationCount(): Observable<ApiResponse<{ count: number }>> {
+    return this.http.get<ApiResponse<{ count: number }>>(`${this.baseUrl}/notifications/unread-count`);
+  }
+
+  markNotificationRead(id: number): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/notifications/${id}/read`, {});
+  }
 
 }

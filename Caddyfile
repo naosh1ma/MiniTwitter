@@ -1,0 +1,14 @@
+your-domain.example {
+	# Caddy provisions and renews TLS automatically for a real public domain -
+	# no separate certbot/nginx-proxy step needed. Replace the domain above
+	# before deploying; for a bare IP or local testing, use `:80` instead and
+	# Caddy skips automatic HTTPS.
+
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+}

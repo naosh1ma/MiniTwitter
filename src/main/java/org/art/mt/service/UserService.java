@@ -1,5 +1,6 @@
 package org.art.mt.service;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -7,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.art.mt.dto.UserDTO;
 import org.art.mt.entity.Follow;
+import org.art.mt.event.UserFollowedEvent;
 import org.art.mt.exception.UserRegistrationException;
 import org.art.mt.repository.FollowRepository;
 import org.art.mt.repository.UserRepository;
@@ -24,16 +26,18 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtil securityUtil;
     private final FileStorageService fileStorageService;
+    private final ApplicationEventPublisher eventPublisher;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     public UserService(UserRepository userRepository, FollowRepository followRepository,
                         PasswordEncoder passwordEncoder, SecurityUtil securityUtil,
-                        FileStorageService fileStorageService) {
+                        FileStorageService fileStorageService, ApplicationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.passwordEncoder = passwordEncoder;
         this.securityUtil = securityUtil;
         this.fileStorageService = fileStorageService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -103,6 +107,7 @@ public class UserService {
             follow.setFollower(follower);
             follow.setFollowing(following);
             followRepository.save(follow);
+            eventPublisher.publishEvent(new UserFollowedEvent(followingUsername, followerUsername));
         }
     }
 

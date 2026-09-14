@@ -1,10 +1,14 @@
 package org.art.mt.controller;
 
+import java.util.List;
 import java.util.Map;
 import org.art.mt.dto.ApiResponse;
+import org.art.mt.dto.CommentDTO;
+import org.art.mt.dto.CreateCommentDTO;
 import org.art.mt.dto.CreatePostDTO;
 import org.art.mt.dto.PostDTO;
 import org.art.mt.dto.PostFeedDTO;
+import org.art.mt.service.CommentService;
 import org.art.mt.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +30,9 @@ public class PostController {
 
     @Autowired
     private PostService postService;
+
+    @Autowired
+    private CommentService commentService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<PostDTO>> createPost(@Valid @RequestBody CreatePostDTO dto) {
@@ -68,5 +75,24 @@ public class PostController {
           String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
           PostDTO result = postService.attachImage(id, username, file);
           return ResponseEntity.ok(ApiResponse.ok(result, "Image attached"));
+      }
+
+      @PostMapping("/{id}/comments")
+      public ResponseEntity<ApiResponse<CommentDTO>> createComment(@PathVariable Long id, @Valid @RequestBody CreateCommentDTO dto) {
+          String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+          CommentDTO result = commentService.createComment(id, username, dto);
+          return ResponseEntity.ok(ApiResponse.ok(result, "Comment added"));
+      }
+
+      @GetMapping("/{id}/comments")
+      public ResponseEntity<ApiResponse<List<CommentDTO>>> getComments(@PathVariable Long id) {
+          return ResponseEntity.ok(ApiResponse.ok(commentService.getComments(id), "Comments fetched"));
+      }
+
+      @DeleteMapping("/{id}/comments/{commentId}")
+      public ResponseEntity<ApiResponse<Void>> deleteComment(@PathVariable Long id, @PathVariable Long commentId) {
+          String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+          commentService.deleteComment(id, commentId, username);
+          return ResponseEntity.ok(ApiResponse.ok(null, "Comment deleted"));
       }
 }

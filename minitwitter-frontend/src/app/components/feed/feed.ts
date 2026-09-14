@@ -1,14 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { CreatePostComponent } from '../create-post/create-post';
 import { ApiService } from '../../services/api';
 import { Post } from '../../models/post';
+import { Comment } from '../../models/comment';
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule, RouterLink, CreatePostComponent],
+  imports: [CommonModule, RouterLink, FormsModule, CreatePostComponent],
   templateUrl: './feed.html',
   styleUrls: ['./feed.css']
 })
@@ -17,6 +19,11 @@ export class FeedComponent implements OnInit {
   loading = false;
   error = false;
   tab: 'forYou' | 'following' = 'forYou';
+
+  expandedPostId: number | null = null;
+  commentsByPostId: Record<number, Comment[]> = {};
+  commentsLoading: Record<number, boolean> = {};
+  newCommentText: Record<number, string> = {};
 
   constructor(private apiService: ApiService) { }
 
@@ -80,6 +87,55 @@ export class FeedComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error deleting post:', error);
+      }
+    });
+  }
+
+  toggleComments(post: Post) {
+    if (this.expandedPostId === post.id) {
+      this.expandedPostId = null;
+      return;
+    }
+    this.expandedPostId = post.id;
+    if (!this.commentsByPostId[post.id]) {
+      this.commentsLoading[post.id] = true;
+      this.apiService.getComments(post.id).subscribe({
+        next: (res) => {
+          this.commentsByPostId[post.id] = res.data;
+          this.commentsLoading[post.id] = false;
+        },
+        error: (error) => {
+          console.error('Error loading comments:', error);
+          this.commentsLoading[post.id] = false;
+        }
+      });
+    }
+  }
+
+  addComment(post: Post) {
+    const content = (this.newCommentText[post.id] || '').trim();
+    if (!content) return;
+
+    this.apiService.addComment(post.id, content).subscribe({
+      next: (res) => {
+        this.commentsByPostId[post.id] = [...(this.commentsByPostId[post.id] || []), res.data];
+        this.newCommentText[post.id] = '';
+        post.commentCount = (post.commentCount || 0) + 1;
+      },
+      error: (error) => {
+        console.error('Error adding comment:', error);
+      }
+    });
+  }
+
+  deleteComment(post: Post, comment: Comment) {
+    this.apiService.deleteComment(post.id, comment.id).subscribe({
+      next: () => {
+        this.commentsByPostId[post.id] = (this.commentsByPostId[post.id] || []).filter(c => c.id !== comment.id);
+        post.commentCount = Math.max(0, (post.commentCount || 0) - 1);
+      },
+      error: (error) => {
+        console.error('Error deleting comment:', error);
       }
     });
   }

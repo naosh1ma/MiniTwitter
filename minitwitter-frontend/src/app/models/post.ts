@@ -9,4 +9,5 @@ export interface Post {
     updatedAt: string;
     likeCount: number;
     likedByCurrentUser: boolean;
+    commentCount: number;
   }

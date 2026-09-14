@@ -1,175 +1,148 @@
-# MiniTwitter 🐦
+# MiniTwitter
 
-A lightweight social feed platform with a Spring Boot backend and an Angular frontend: user registration, JWT-based login, and a public post feed.
+A full-stack Twitter clone built to practice production-shaped engineering, not just CRUD: JWT authentication with a real Spring Security filter chain, a follow graph with a personalized feed, comments, Redis-cached feed reads, Kafka-driven async notifications, optimistic UI updates, a 129-test suite spanning unit, Mockito, and full-stack integration tests, and a documented security/error-handling audit with fixes.
 
-## 🚀 Features
+**Backend**: Java 25 · Spring Boot 4.1 · Spring Security · Spring Data JPA · PostgreSQL
+**Frontend**: Angular 20 (standalone components) · Tailwind CSS
+**Testing**: JUnit 5 · Mockito · MockMvc + H2 · Jasmine/Karma
 
-- **User Management**: Registration, login, JWT-based authentication, profile view/edit
-- **Posts**: Create posts and browse a public feed (no likes/comments yet — see Roadmap)
-- **Monitoring**: Prometheus metrics and Grafana dashboards (infra provisioned, not yet wired into app code)
+## Screenshots
 
-## 🛠️ Tech Stack
+| Feed | Profile | Login |
+|---|---|---|
+| ![Feed](docs/screenshots/feed.png) | ![Profile](docs/screenshots/profile.png) | ![Login](docs/screenshots/login.png) |
 
-- **Backend**: Java 25, Spring Boot 4.1.1, Spring Security, Spring Data JPA
-- **Frontend**: Angular 20 (standalone components)
-- **Database**: PostgreSQL 16
-- **Cache / Streaming**: Redis 7, Apache Kafka (provisioned via Docker Compose; not yet used by application code)
-- **Security**: JWT authentication (`jjwt`), BCrypt password hashing
-- **Monitoring**: Prometheus, Grafana, Spring Boot Actuator
-- **Containerization**: Docker / Podman, Docker Compose
+## What this project demonstrates
 
-## 📋 Prerequisites
+- **JWT auth built from the primitives, not a tutorial copy-paste.** A custom `OncePerRequestFilter` populates the `SecurityContext`; `WebSecurityConfig` hand-tunes per-route rules (public feed, public profile lookups, protected writes) — including catching and fixing a real ordering bug where a wildcard route (`/api/users/{username}`) would have accidentally made `/api/users/profile` public too.
+- **A real follow graph and personalized feed** (`Follow` entity, `PostRepository.findByAuthorInOrderByCreatedAtDesc`), not just a single global timeline.
+- **Found and fixed a live security/correctness audit**, not just written code that happened to work: a catch-all exception handler was silently turning validation errors, malformed JSON, and 404s into generic 500s. Diagnosed with real HTTP requests, fixed with exception-hierarchy-specific handlers, verified with a regression test for every case.
+- **129 tests that actually run**, not a token smoke test — see [Testing](#testing) below, including full-stack `MockMvc` integration tests that exercise the real security filter chain and a real (H2) database, and Mockito unit tests for every ownership check, race-safety branch (concurrent double-likes), and access-control edge case.
+- **Redis and Kafka each earn exactly one genuine use case, not resume padding.** Redis caches only the impersonal half of the hottest feed page (page 0), with per-viewer like state always computed fresh on top — caching personalized data would have been a correctness bug, not a feature. Kafka decouples notification-writing from the hot like/follow request path via `@TransactionalEventListener(AFTER_COMMIT)`, accepting a documented trade-off (a notification can rarely be lost if Kafka is down at that exact instant) rather than building a persisted outbox this project's scale doesn't justify.
+- **Diagnosed a real Spring Boot 4.1.1 platform gap, not just a config typo.** Spring Boot 4.1.1's `spring-boot-autoconfigure` jar ships zero Kafka autoconfiguration classes (verified by inspecting the jar directly) — so `KafkaConfig` wires the producer/consumer factories and listener container by hand instead of relying on a `KafkaTemplate` bean that was never going to exist.
+- **Every dependency on Redis/Kafka fails soft, proven by a broker-down test run.** Every Redis call is wrapped in try/catch around `DataAccessException` and degrades to "no cache" (see `FeedCacheServiceTest`); the Kafka producer is tuned to a 1s `max.block.ms` specifically so a broker outage costs a bounded second instead of hanging the request thread for its 60s default — verified live by stopping the broker mid-session and confirming create/like/follow/notifications all still return 200.
+- **Optimistic UI with rollback**: liking a post updates the UI instantly and reverts cleanly if the request fails — covered by a dedicated frontend test.
+- **A deliberate database-level cascade** (`@OnDelete(CASCADE)`) so deleting a post, user, or comment cleans up its dependents without extra service code.
 
-- Java 25 or higher
-- Node.js 20.19+ or 22+ and npm (for frontend development)
-- Docker or Podman + Compose (for Postgres and the optional infra stack)
-- Maven (or use the included Maven Wrapper, `./mvnw`)
+## Features
 
-## 🚀 Quick Start
+- User registration, JWT login, profile view/edit, avatar upload
+- Create posts (text + optional image), delete your own posts
+- Like/unlike posts with live counts, comment on posts
+- Follow/unfollow users; a "For You" (global) and "Following" (personalized) feed
+- Public profile pages per user, with follower/following counts
+- Async notifications (like/follow) delivered via Kafka, with an unread badge in the header
+- Redis-cached feed reads (page 0, ~30s TTL), transparent to the client either way
 
-### 1. Clone the Repository
+## Quick Start
+
 ```bash
 git clone https://github.com/naosh1ma/MiniTwitter.git
 cd MiniTwitter
-```
 
-### 2. Start Postgres (and optional infra)
-```bash
+# 1. Database
 docker-compose up -d postgres
-```
-This starts just the database on port 5433, matching `application.properties`. The compose file also defines `backend`, `frontend`, and a full monitoring/logging stack (Redis, Kafka, Prometheus, Grafana, ELK) — see [Docker Services](#-docker-services) if you want to run everything containerized instead of the local dev workflow below.
 
-### 3. Run the Backend
-```bash
+# 2. Backend  (http://localhost:8080)
 ./mvnw spring-boot:run
-```
-Starts on `http://localhost:8080`. On first run, Hibernate creates the `users` and `posts` tables automatically (`spring.jpa.hibernate.ddl-auto=update`).
 
-### 4. Run the Frontend
+# 3. Frontend (http://localhost:4200)
+cd minitwitter-frontend && npm install && npm start
+```
+
+Requires Java 25+, Node 20.19+/22+, and Docker/Podman for Postgres. `docker-compose.yml` also defines a full containerized stack (`docker-compose up -d`) if you'd rather not run things locally — see [Docker Services](#docker-services).
+
+## Testing
+
 ```bash
-cd minitwitter-frontend
-npm install
-npm start
-```
-Starts on `http://localhost:4200` and proxies API calls to `http://localhost:8080/api`.
-
-## 📚 API Endpoints
-
-### Auth
-- `POST /api/auth/login` — Log in, returns a JWT + user info
-- `POST /api/auth/validate` — Validate a `Bearer` token
-
-### Users
-- `POST /api/users/register` — Register a new user
-- `GET /api/users/{username}` — Get a user's public info
-- `GET /api/users/profile` — Get the logged-in user's profile *(requires auth)*
-- `PUT /api/users/profile` — Update the logged-in user's bio *(requires auth)*
-
-### Posts
-- `POST /api/posts` — Create a post *(requires auth)*
-- `GET /api/posts/feed?page=0&size=20` — Paginated public feed *(no auth required)*
-
-### Example Usage
-
-**Register a user:**
-```bash
-curl -X POST http://localhost:8080/api/users/register \
-  -H "Content-Type: application/json" \
-  -d '{"username": "testuser", "email": "test@example.com", "password": "password123"}'
+./mvnw test                                    # 67 backend tests
+cd minitwitter-frontend && npx ng test          # 62 frontend tests
 ```
 
-**Log in:**
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "testuser", "password": "password123"}'
-```
+| Suite | Count | What it covers |
+|---|---|---|
+| `JwtServiceTest` | 7 | Token generation/parsing, tampering detection |
+| `PostServiceTest` / `UserServiceTest` | 22 | Mockito unit tests: ownership checks, like-toggle race safety, follow/self-follow rules, anonymous-vs-authenticated behavior, feed cache hit/miss/eviction, like/follow event publishing |
+| `CommentServiceTest` / `NotificationServiceTest` | 11 | Ownership checks, chronological ordering, unread counts, mark-as-read authorization |
+| `FeedCacheServiceTest` / `NotificationConsumerTest` | 9 | Redis fail-soft behavior on a down broker; Kafka consumer idempotency (duplicate `eventId`) and unknown-user skip |
+| `PostFlowIntegrationTest` | 17 | Full HTTP stack via MockMvc — real security filter chain, real exception handling, real (H2) database. Register → login → post → like → follow → comment → delete, plus every error path |
+| Frontend component/service specs | 62 | `HttpTestingController`-driven: feed loading, tab switching, optimistic like/rollback, comments, notifications, delete, auth flows — no live network calls |
 
-**Create a post (with the token from login):**
-```bash
-curl -X POST http://localhost:8080/api/posts \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{"content": "Hello MiniTwitter!"}'
-```
+None of the above needs Redis or Kafka running — CI (and this test run) exercises every fail-soft path against a broker/cache that's simply absent, which is the actual proof the resilience code works.
 
-## 🏗️ Project Structure
+No mocked-away business logic in the integration tests — a request to `/api/posts` with no token gets rejected by the *actual* `JwtAuthenticationFilter`, not a stand-in.
+
+## Architecture
 
 ```
-.
-├── src/main/java/org/art/mt/
-│   ├── config/          # Security, CORS, JWT filter
-│   ├── controller/      # REST controllers
-│   ├── dto/              # Request/response DTOs
-│   ├── entity/           # JPA entities
-│   ├── exception/        # Exception handling
-│   ├── repository/       # Data repositories
-│   ├── service/          # Business logic
-│   └── MTApplication.java
-├── src/main/resources/application.properties
-├── minitwitter-frontend/  # Angular app (standalone components)
-│   └── src/app/
-│       ├── components/    # auth, feed, create-post, header, profile
-│       ├── services/       # API client
-│       ├── interceptors/   # JWT auth interceptor
-│       └── models/
-├── Dockerfile             # Backend image
-├── minitwitter-frontend/Dockerfile  # Frontend image
-├── docker-compose.yml     # Full stack: app + infra + monitoring
-└── pom.xml
+Angular SPA → Controller (@RestController) → Service (@Transactional) → Spring Data JPA → PostgreSQL
+                     ↑
+     WebSecurityFilterChain + JwtAuthenticationFilter (every request)
+                     ↓
+              GlobalExceptionHandler (every thrown exception)
 ```
 
-## 🔧 Configuration
-
-`src/main/resources/application.properties` holds dev-only, hardcoded values — fine for local development, but replace them before deploying anywhere reachable:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5433/MiniTwitter
-spring.datasource.username=postgres
-spring.datasource.password=devpass123
-
-jwt.secret=minitwitter-dev-secret-change-me
-jwt.expiration=86400000
+```
+src/main/java/org/art/mt/
+├── config/       WebSecurityConfig, JwtAuthenticationFilter, CORS, static file serving
+├── controller/    Thin — HTTP ↔ service translation only
+├── service/       Business logic, @Transactional boundaries
+├── repository/    Spring Data JPA interfaces
+├── entity/        User, Post, Like, Follow, Comment, Notification
+├── event/         Internal Spring events (PostLikedEvent, UserFollowedEvent) bridged to Kafka
+├── consumer/      NotificationConsumer (@KafkaListener)
+├── dto/           Request/response shapes
+└── exception/     GlobalExceptionHandler + typed exceptions
 ```
 
-## 🐳 Docker Services
+## API Reference
 
-`docker-compose.yml` defines the full stack — application and infrastructure:
+| Method | Endpoint | Auth |
+|---|---|---|
+| `POST` | `/api/auth/login` | — |
+| `POST` | `/api/users/register` | — |
+| `GET` | `/api/users/{username}` | — |
+| `GET` `PUT` | `/api/users/profile` | ✓ |
+| `POST` | `/api/users/profile/avatar` | ✓ |
+| `POST` `DELETE` | `/api/users/{username}/follow` | ✓ |
+| `GET` | `/api/posts/feed` | — |
+| `GET` | `/api/posts/feed/following` | ✓ |
+| `POST` | `/api/posts` | ✓ |
+| `DELETE` | `/api/posts/{id}` | ✓ (owner only) |
+| `POST` | `/api/posts/{id}/like` | ✓ |
+| `POST` | `/api/posts/{id}/image` | ✓ (owner only) |
+| `GET` `POST` | `/api/posts/{id}/comments` | GET — ; POST ✓ |
+| `DELETE` | `/api/posts/{id}/comments/{commentId}` | ✓ (owner only) |
+| `GET` | `/api/notifications` | ✓ |
+| `GET` | `/api/notifications/unread-count` | ✓ |
+| `POST` | `/api/notifications/{id}/read` | ✓ (owner only) |
 
-| Service | Port | Description |
-|---------|------|-------------|
-| frontend | 4200 | Angular app (Nginx) |
+## Docker Services
+
+`docker-compose.yml` defines the full stack:
+
+| Service | Port | Notes |
+|---|---|---|
+| frontend | 4200 | Angular via Nginx |
 | backend | 8080 | Spring Boot API |
-| postgres | 5433 | Main database |
-| redis | 6379 | Caching layer (provisioned, not yet used by the app) |
-| kafka | 9092 | Message streaming (provisioned, not yet used by the app) |
-| prometheus | 9090 | Metrics collection |
-| grafana | 3000 | Monitoring dashboard |
-| elasticsearch | 9200 | Log storage and search |
-| logstash | 5044 | Log processing |
-| kibana | 5601 | Log visualization |
+| postgres | 5433 | Database |
+| redis | 6379 | Caches the feed's hottest page (~30s TTL); app runs fine if this is down |
+| kafka | 9092 | Carries like/follow notification events to `NotificationConsumer`; app runs fine if this is down |
+| prometheus / grafana | 9090 / 3000 | Metrics |
+| elasticsearch / logstash / kibana | 9200 / 5044 / 5601 | Logging |
 
-Run `docker-compose up -d` to start everything, or target specific services (e.g. `docker-compose up -d postgres`) for the local dev workflow above.
+## Honest Roadmap
 
-## 🗺️ Roadmap
+This is a learning/portfolio project and the README says so on purpose — a list of known gaps is more credible than pretending there are none:
+- ~~Comments on posts~~ — done, with cascade-delete and full test coverage
+- ~~Redis caching and Kafka event streaming are provisioned but not wired into the app~~ — both now do real work (feed caching, async notifications); see above for the "one genuine use case each" reasoning
+- GitHub Actions CI workflow exists (`.github/workflows/ci.yml`, backend + frontend jobs) but hasn't been pushed and confirmed green yet — the status badge goes here once it has
+- Deployment: `docker-compose.prod.yml` + `Caddyfile` exist (KRaft-mode Kafka, TLS via Caddy, secrets out of `application.properties`) but are reviewed, not yet run against a real VPS — Kafka/Redis being load-bearing now means the target box needs to be sized accordingly (~4GB, not the 1-2GB a static-content app could get away with). One known gap before a real deploy: `ApiService` still hardcodes `http://localhost:8080/api` as its base URL, which would need to become environment-configurable (or relative, since Caddy proxies same-origin) for the built frontend to actually reach the backend in production.
 
-Known gaps, not yet implemented:
-- Likes and comments on posts
-- Avatar upload (`POST /api/users/profile/avatar` — frontend calls it, backend doesn't implement it yet)
-- Redis caching and Kafka event streaming are provisioned in Docker Compose but not yet wired into the application
+## License
 
-## 🤝 Contributing
+MIT — see [LICENSE](LICENSE).
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Author
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Author
-
-**Arthur** - [@naosh1ma](https://github.com/naosh1ma)
+**Arthur** — [@naosh1ma](https://github.com/naosh1ma)

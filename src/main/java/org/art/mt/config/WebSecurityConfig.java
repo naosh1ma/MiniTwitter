@@ -27,6 +27,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/users/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/feed").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
                         // Must come before the /api/users/{username} wildcard below, since
                         // "profile" would otherwise also match that single-segment pattern.
                         .requestMatchers("/api/users/profile", "/api/users/profile/avatar").authenticated()

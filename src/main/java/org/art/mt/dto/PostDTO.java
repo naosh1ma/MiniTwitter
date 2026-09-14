@@ -12,6 +12,7 @@ public class PostDTO {
     private LocalDateTime updatedAt;
     private long likeCount;
     private boolean likedByCurrentUser;
+    private long commentCount;
 
     public PostDTO() {}
     public PostDTO(Long id, String content, UserDTO author, LocalDateTime createdAt, LocalDateTime updatedAt) {
@@ -37,4 +38,6 @@ public class PostDTO {
     public void setLikeCount(long likeCount) {this.likeCount = likeCount;}
     public boolean isLikedByCurrentUser() {return likedByCurrentUser;}
     public void setLikedByCurrentUser(boolean likedByCurrentUser) {this.likedByCurrentUser = likedByCurrentUser;}
+    public long getCommentCount() {return commentCount;}
+    public void setCommentCount(long commentCount) {this.commentCount = commentCount;}
 }

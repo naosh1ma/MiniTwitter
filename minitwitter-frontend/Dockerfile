@@ -5,12 +5,12 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-COPY .. .
+COPY . .
 RUN npm run build -- --configuration production
 
 # Stage 2: Serve static assets using Nginx
 FROM nginx:alpine
-COPY --from=build /app/dist/mini-twitter/browser /usr/share/nginx/html
+COPY --from=build /app/dist/minitwitter-frontend/browser /usr/share/nginx/html
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
