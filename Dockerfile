@@ -4,6 +4,9 @@ WORKDIR /app
 
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
+# mvnw isn't tracked as executable in git (same root cause as the CI fix),
+# so a fresh clone/checkout needs this before it can be invoked at all.
+RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline -B
 
 COPY src src
