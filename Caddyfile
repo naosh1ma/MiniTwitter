@@ -1,3 +1,17 @@
+{
+	# Caddy auto-enables HTTP/3 (QUIC over UDP/443) and advertises it via
+	# Alt-Svc by default. curl ignores that header and just uses HTTP/2 over
+	# TCP, so it always works fine - but real browsers eagerly try to upgrade
+	# to HTTP/3, and if the host's cloud firewall only has a TCP/443 rule (an
+	# easy thing to do by accident - UDP/443 is a separate rule), the QUIC
+	# handshake silently hangs with no fallback, and the browser shows a
+	# blank page while curl shows nothing wrong at all. This app has no need
+	# for HTTP/3, so it's simplest to just turn it off entirely.
+	servers {
+		protocols h1 h2
+	}
+}
+
 naosh1ma.de {
 	# Caddy provisions and renews TLS automatically for a real public domain -
 	# no separate certbot/nginx-proxy step needed.
@@ -13,6 +27,11 @@ naosh1ma.de {
 	handle /uploads/* {
 		reverse_proxy backend:8080
 	}
+
+	# The bare path (no trailing slash) matches none of handle_path's
+	# wildcard below, and Caddy would otherwise fall through to an empty
+	# 200 OK - redirect it to the slash-terminated form first.
+	redir /minitwitter /minitwitter/ permanent
 
 	# handle_path strips the /minitwitter prefix before forwarding, so the
 	# frontend container always sees requests as if it were at "/" - it has

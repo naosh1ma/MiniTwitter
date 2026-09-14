@@ -40,7 +40,14 @@ services:
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - APP_CORS_ALLOWED_ORIGIN=https://naosh1ma.de
+      - APP_UPLOAD_DIR=/data/uploads
       - JAVA_TOOL_OPTIONS=-Xmx384m -Xms256m
+    volumes:
+      # Without this, uploaded avatars/post images live only in the
+      # container's own ephemeral filesystem and are silently lost on every
+      # restart/redeploy - the DB still points at "/uploads/xyz.png" but the
+      # file itself is gone, so the image just 404s from then on.
+      - uploads_data:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -127,6 +134,7 @@ volumes:
   postgres_data:
   redis_data:
   kafka_data:
+  uploads_data:
   caddy_data:
   caddy_config:
 
