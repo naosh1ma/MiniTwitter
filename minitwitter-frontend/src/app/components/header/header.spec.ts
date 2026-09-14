@@ -42,7 +42,7 @@ describe('Header', () => {
     expect(component.isAuthenticated).toBeTrue();
     expect(component.user.username).toBe('alice');
 
-    httpMock.expectOne('http://localhost:8080/api/notifications/unread-count')
+    httpMock.expectOne('/api/notifications/unread-count')
       .flush({ success: true, message: null, data: { count: 0 } });
   });
 
@@ -50,7 +50,7 @@ describe('Header', () => {
     localStorage.setItem('user', JSON.stringify({ username: 'alice' }));
     component.checkAuthStatus();
 
-    httpMock.expectOne('http://localhost:8080/api/notifications/unread-count')
+    httpMock.expectOne('/api/notifications/unread-count')
       .flush({ success: true, message: null, data: { count: 4 } });
 
     expect(component.unreadCount).toBe(4);
@@ -60,7 +60,7 @@ describe('Header', () => {
     localStorage.setItem('user', JSON.stringify({ username: 'alice' }));
     component.checkAuthStatus();
 
-    httpMock.expectOne('http://localhost:8080/api/notifications/unread-count')
+    httpMock.expectOne('/api/notifications/unread-count')
       .flush('server error', { status: 500, statusText: 'Internal Server Error' });
 
     expect(component.unreadCount).toBe(0);

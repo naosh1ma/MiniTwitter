@@ -4,10 +4,11 @@
 ## service exposed to the host; backend/postgres/redis/kafka stay on the
 ## internal network and are reached only through it or by other containers.
 ##
-## Secrets (SPRING_DATASOURCE_PASSWORD, JWT_SECRET) are supplied here via
-## environment values you must change before deploying - they are NOT read
-## from application.properties in this file, which keeps its simple
-## localhost-only dev defaults untouched.
+## Secrets (DB_PASSWORD, JWT_SECRET) are read from a .env file in this same
+## directory via docker compose's native ${VAR} substitution - see
+## .env.prod.example for the template. That .env file is real, host-only
+## config and must never be committed. application.properties itself is
+## untouched and keeps its simple localhost-only dev defaults.
 
 services:
 
@@ -15,6 +16,12 @@ services:
     build:
       context: ./minitwitter-frontend
       dockerfile: Dockerfile
+      args:
+        # Served at naosh1ma.de/minitwitter, not its own subdomain - Angular
+        # needs to know its base path at build time to resolve routes/assets
+        # correctly. Change back to "/" if you ever move this to its own
+        # subdomain instead.
+        BASE_HREF: /minitwitter/
     restart: unless-stopped
     depends_on:
       - backend
@@ -27,12 +34,12 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/MiniTwitter
       - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=CHANGE_ME_BEFORE_DEPLOY
-      - JWT_SECRET=CHANGE_ME_BEFORE_DEPLOY
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env}
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET in .env}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - APP_CORS_ALLOWED_ORIGIN=https://your-domain.example
+      - APP_CORS_ALLOWED_ORIGIN=https://naosh1ma.de
       - JAVA_TOOL_OPTIONS=-Xmx384m -Xms256m
     depends_on:
       postgres:
@@ -51,7 +58,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: CHANGE_ME_BEFORE_DEPLOY
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
       POSTGRES_DB: MiniTwitter
     volumes:
       - postgres_data:/var/lib/postgresql/data

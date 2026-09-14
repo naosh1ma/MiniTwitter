@@ -65,10 +65,6 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
-    public Optional<User> getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-
     @Transactional
     public User updateProfile(String username, String bio, String avatarUrl) {
         User user = userRepository.findByUsername(username)
@@ -136,21 +132,5 @@ public class UserService {
                     dto.setFollowedByCurrentUser(followRepository.existsByFollowerAndFollowing(currentUser, user)));
         }
         return dto;
-    }
-
-    public boolean updateUser(User user) {
-        if (userRepository.existsById(user.getId())) {
-            userRepository.save(user);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean deleteUser(Long id) {
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-            return true;
-        }
-        return false;
     }
 }

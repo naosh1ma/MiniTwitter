@@ -1,14 +1,29 @@
-your-domain.example {
+naosh1ma.de {
 	# Caddy provisions and renews TLS automatically for a real public domain -
-	# no separate certbot/nginx-proxy step needed. Replace the domain above
-	# before deploying; for a bare IP or local testing, use `:80` instead and
-	# Caddy skips automatic HTTPS.
+	# no separate certbot/nginx-proxy step needed.
 
 	handle /api/* {
 		reverse_proxy backend:8080
 	}
 
-	handle {
+	# Uploaded avatars/post images are served by the backend at /uploads/**
+	# (see WebMvcConfig) - same origin as the app, so the frontend can
+	# reference them with a plain relative path regardless of the
+	# /minitwitter prefix below.
+	handle /uploads/* {
+		reverse_proxy backend:8080
+	}
+
+	# handle_path strips the /minitwitter prefix before forwarding, so the
+	# frontend container always sees requests as if it were at "/" - it has
+	# no idea it's being served under a path prefix. Angular itself was told
+	# about the prefix at build time via BASE_HREF (see docker-compose.prod.yml)
+	# so its router and asset URLs already expect it.
+	handle_path /minitwitter/* {
 		reverse_proxy frontend:80
 	}
+
+	# Root "/" is intentionally not handled here - it's reserved for whatever
+	# else you put at naosh1ma.de later (a homepage, etc.) and this stack
+	# doesn't claim it. Add your own `handle { ... }` block for it when ready.
 }

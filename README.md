@@ -137,7 +137,27 @@ This is a learning/portfolio project and the README says so on purpose — a lis
 - ~~Comments on posts~~ — done, with cascade-delete and full test coverage
 - ~~Redis caching and Kafka event streaming are provisioned but not wired into the app~~ — both now do real work (feed caching, async notifications); see above for the "one genuine use case each" reasoning
 - GitHub Actions CI workflow exists (`.github/workflows/ci.yml`, backend + frontend jobs) but hasn't been pushed and confirmed green yet — the status badge goes here once it has
-- Deployment: `docker-compose.prod.yml` + `Caddyfile` exist (KRaft-mode Kafka, TLS via Caddy, secrets out of `application.properties`) but are reviewed, not yet run against a real VPS — Kafka/Redis being load-bearing now means the target box needs to be sized accordingly (~4GB, not the 1-2GB a static-content app could get away with). One known gap before a real deploy: `ApiService` still hardcodes `http://localhost:8080/api` as its base URL, which would need to become environment-configurable (or relative, since Caddy proxies same-origin) for the built frontend to actually reach the backend in production.
+- Deployment: `docker-compose.prod.yml` + `Caddyfile` (KRaft-mode Kafka, automatic TLS via Caddy, secrets read from a host-only `.env` — see [Deployment](#deployment) below). Kafka/Redis being load-bearing now means the target box needs to be sized accordingly (~4GB, not the 1-2GB a static-content app could get away with).
+
+## Deployment
+
+`docker-compose.prod.yml` runs the whole stack (Postgres, Redis, single-node KRaft-mode Kafka, backend, frontend, Caddy) behind Caddy as the only public ingress — Caddy handles TLS automatically and reverse-proxies `/api/*` and `/uploads/*` to the backend, everything else to the frontend, all over an internal Docker network.
+
+```bash
+git clone https://github.com/naosh1ma/MiniTwitter.git
+cd MiniTwitter
+
+cp .env.prod.example .env
+# edit .env: set DB_PASSWORD and JWT_SECRET (openssl rand -base64 48)
+
+# Point the domain in Caddyfile at your own domain/subdomain first if it
+# isn't minitwitter.<yourdomain> already, and add a DNS A record for it
+# pointing at this host.
+
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Requires ~4GB RAM on the host — Kafka and Redis are actually load-bearing here, not just provisioned. If the host already runs other services, only ports 80/443 need to be free (everything else stays on the internal Docker network); check with `sudo ss -tlnp | grep -E ':80|:443'` first.
 
 ## License
 

@@ -15,8 +15,11 @@ import { ApiResponse } from '../models/api-response';
 })
 
 export class ApiService {
-  private baseUrl = 'http://localhost:8080/api';  // Spring Boot API URL
-  readonly apiOrigin = 'http://localhost:8080';  // Used to resolve server-relative URLs like avatarUrl
+  // Relative on purpose: in dev, proxy.conf.json forwards these to localhost:8080;
+  // in production, Caddy reverse-proxies them to the backend on the same origin
+  // the frontend is served from. Never hardcode a host here.
+  private baseUrl = '/api';
+  readonly apiOrigin = '';  // Used to resolve server-relative URLs like avatarUrl
 
   constructor(private http: HttpClient) { } // HTTP Client injizieren
 
