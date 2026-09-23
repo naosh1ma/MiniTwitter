@@ -15,23 +15,30 @@ import java.util.Collections;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-  private final JwtService jwtService;
-  public JwtAuthenticationFilter(JwtService jwtService) { this.jwtService = jwtService; }
 
-  @Override
-protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain chain)
-    throws ServletException, IOException {
-    String auth = request.getHeader("Authorization");
-    if (auth != null && auth.startsWith("Bearer ")) {
-        String token = auth.substring(7);
-        try {
-            String username = jwtService.extractUsername(token);
-            if (jwtService.isTokenValid(token, username)) {
-                var authToken = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        } catch (Exception ignored) { /* let controller handle unauthorized */ }
+    private final JwtService jwtService;
+
+    public JwtAuthenticationFilter(JwtService jwtService) {
+        this.jwtService = jwtService;
     }
-    chain.doFilter(request, response);
-}
+
+    @Override
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain chain) throws ServletException, IOException {
+        String token = jwtService.resolveBearerToken(request.getHeader("Authorization"));
+        if (token != null) {
+            try {
+                String username = jwtService.extractUsername(token);
+                if (jwtService.isTokenValid(token, username)) {
+                    var authToken = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception ignored) {
+                // Leave the context anonymous; the security rules decide whether
+                // this request needed authentication.
+            }
+        }
+        chain.doFilter(request, response);
+    }
 }

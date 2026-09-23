@@ -1,8 +1,9 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api';
+import { AuthStore } from '../../services/auth-store';
 
 @Component({
   selector: 'app-auth',
@@ -12,21 +13,21 @@ import { ApiService } from '../../services/api';
   styleUrls: ['./auth.css']
 })
 export class AuthComponent {
-  @Output() loginSuccess = new EventEmitter<void>();
-  
   isLogin = true;
   loginRequest = { username: '', password: '' };
   registerData = { username: '', email: '', password: '' };
 
-  constructor(private apiService: ApiService, private router: Router) {}
+  constructor(
+    private apiService: ApiService,
+    private authStore: AuthStore,
+    private router: Router
+  ) {}
 
-  onLogin() {
+  onLogin(): void {
     this.apiService.login(this.loginRequest).subscribe({
       next: (response) => {
         if (response.success) {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          this.loginSuccess.emit();
+          this.authStore.login(response.data.token, response.data.user);
           this.router.navigate(['/feed']);
         }
       },
@@ -36,11 +37,11 @@ export class AuthComponent {
     });
   }
 
-  toggleMode() {
+  toggleMode(): void {
     this.isLogin = !this.isLogin;
   }
 
-  onRegister() {
+  onRegister(): void {
     this.apiService.register(this.registerData).subscribe({
       next: (response) => {
         if (response.success) {

@@ -1,5 +1,6 @@
 package org.art.mt.config;
 
+import org.art.mt.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
@@ -14,7 +15,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**")
+        registry.addResourceHandler(FileStorageService.UPLOADS_URL_PATTERN)
                 .addResourceLocations("file:" + uploadDir + "/");
     }
 }

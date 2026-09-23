@@ -1,13 +1,14 @@
 package org.art.mt.controller;
 
+import org.art.mt.dto.ApiResponse;
 import org.art.mt.dto.ProfileUpdateDTO;
+import org.art.mt.dto.UserDTO;
 import org.art.mt.dto.UserRegistrationDTO;
 import org.art.mt.entity.User;
-import org.art.mt.dto.ApiResponse;
-import org.art.mt.dto.UserDTO;
 import org.art.mt.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +24,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
     private final UserService userService;
 
     public UserController(UserService userService) {
@@ -30,53 +32,53 @@ public class UserController {
     }
 
     @PostMapping("/register")
-public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody UserRegistrationDTO dto) {
-    if (userService.registerUser(dto.getUsername(), dto.getEmail(), dto.getPassword())) {
+    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody UserRegistrationDTO dto) {
+        userService.registerUser(dto.getUsername(), dto.getEmail(), dto.getPassword());
         return ResponseEntity.ok(ApiResponse.ok(null, "User registered successfully"));
     }
-    return ResponseEntity.badRequest().body(ApiResponse.error("User registration failed"));
-}
 
     @GetMapping("/{username}")
     public ResponseEntity<ApiResponse<UserDTO>> getUserByUsername(@PathVariable String username) {
-        return userService.getUserByUsername(username)
-                .map(user -> ResponseEntity.ok(ApiResponse.ok(userService.convertToDTOWithFollowInfo(user), "User fetched")))
-                .orElse(ResponseEntity.status(404).body(ApiResponse.error("User not found")));
+        return profileResponse(username, "User fetched");
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<UserDTO>> getProfile() {
-        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return userService.getUserByUsername(username)
-                .map(user -> ResponseEntity.ok(ApiResponse.ok(userService.convertToDTOWithFollowInfo(user), "Profile fetched")))
-                .orElse(ResponseEntity.status(404).body(ApiResponse.error("User not found")));
+    public ResponseEntity<ApiResponse<UserDTO>> getProfile(@AuthenticationPrincipal String username) {
+        return profileResponse(username, "Profile fetched");
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<ApiResponse<UserDTO>> updateProfile(@Valid @RequestBody ProfileUpdateDTO dto) {
-        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<ApiResponse<UserDTO>> updateProfile(@Valid @RequestBody ProfileUpdateDTO dto,
+                                                              @AuthenticationPrincipal String username) {
         User updated = userService.updateProfile(username, dto.getBio(), dto.getAvatarUrl());
         return ResponseEntity.ok(ApiResponse.ok(userService.convertToDTOWithFollowInfo(updated), "Profile updated"));
     }
 
     @PostMapping("/profile/avatar")
-    public ResponseEntity<ApiResponse<UserDTO>> uploadAvatar(@RequestParam("file") MultipartFile file) {
-        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<ApiResponse<UserDTO>> uploadAvatar(@RequestParam("file") MultipartFile file,
+                                                             @AuthenticationPrincipal String username) {
         User updated = userService.updateAvatar(username, file);
         return ResponseEntity.ok(ApiResponse.ok(userService.convertToDTOWithFollowInfo(updated), "Avatar updated"));
     }
 
     @PostMapping("/{username}/follow")
-    public ResponseEntity<ApiResponse<Void>> follow(@PathVariable String username) {
-        String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<ApiResponse<Void>> follow(@PathVariable String username,
+                                                    @AuthenticationPrincipal String currentUsername) {
         userService.followUser(currentUsername, username);
         return ResponseEntity.ok(ApiResponse.ok(null, "Followed"));
     }
 
     @DeleteMapping("/{username}/follow")
-    public ResponseEntity<ApiResponse<Void>> unfollow(@PathVariable String username) {
-        String currentUsername = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<ApiResponse<Void>> unfollow(@PathVariable String username,
+                                                      @AuthenticationPrincipal String currentUsername) {
         userService.unfollowUser(currentUsername, username);
         return ResponseEntity.ok(ApiResponse.ok(null, "Unfollowed"));
+    }
+
+    private ResponseEntity<ApiResponse<UserDTO>> profileResponse(String username, String message) {
+        return userService.getUserByUsername(username)
+                .map(user -> ResponseEntity.ok(ApiResponse.ok(userService.convertToDTOWithFollowInfo(user), message)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("User not found")));
     }
 }

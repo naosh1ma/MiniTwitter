@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CreatePostComponent } from '../create-post/create-post';
 import { ApiService } from '../../services/api';
+import { AuthStore } from '../../services/auth-store';
 import { Post } from '../../models/post';
 import { Comment } from '../../models/comment';
 
@@ -16,7 +17,6 @@ import { Comment } from '../../models/comment';
 })
 export class FeedComponent implements OnInit {
   posts: Post[] = [];
-  loading = false;
   error = false;
   tab: 'forYou' | 'following' = 'forYou';
 
@@ -25,36 +25,28 @@ export class FeedComponent implements OnInit {
   commentsLoading: Record<number, boolean> = {};
   newCommentText: Record<number, string> = {};
 
-  constructor(private apiService: ApiService) { }
+  page = 0;
+  size = 20;
+  last = false;
 
-  ngOnInit() {
+  constructor(private apiService: ApiService, private authStore: AuthStore) { }
+
+  ngOnInit(): void {
     this.loadPosts();
   }
 
-  get apiOrigin(): string {
-    return this.apiService.apiOrigin;
-  }
-
   get currentUsername(): string | null {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
-    try {
-      return JSON.parse(userStr).username;
-    } catch {
-      return null;
-    }
+    return this.authStore.username;
   }
 
-  page = 0; size = 20; last = false;
-
-  switchTab(tab: 'forYou' | 'following') {
+  switchTab(tab: 'forYou' | 'following'): void {
     if (this.tab === tab) return;
     this.tab = tab;
     this.page = 0; this.last = false; this.posts = [];
     this.loadPosts();
   }
 
-  loadPosts() {
+  loadPosts(): void {
     if (this.last) return;
     this.error = false;
     const request = this.tab === 'forYou'
@@ -69,18 +61,17 @@ export class FeedComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading posts:', error);
-        this.loading = false;
         this.error = true;
       }
     });
   }
 
-  onPostCreated() {
+  onPostCreated(): void {
     this.page = 0; this.last = false; this.posts = [];
     this.loadPosts();
   }
 
-  deletePost(post: Post) {
+  deletePost(post: Post): void {
     this.apiService.deletePost(post.id).subscribe({
       next: () => {
         this.posts = this.posts.filter(p => p.id !== post.id);
@@ -91,7 +82,7 @@ export class FeedComponent implements OnInit {
     });
   }
 
-  toggleComments(post: Post) {
+  toggleComments(post: Post): void {
     if (this.expandedPostId === post.id) {
       this.expandedPostId = null;
       return;
@@ -112,7 +103,7 @@ export class FeedComponent implements OnInit {
     }
   }
 
-  addComment(post: Post) {
+  addComment(post: Post): void {
     const content = (this.newCommentText[post.id] || '').trim();
     if (!content) return;
 
@@ -128,7 +119,7 @@ export class FeedComponent implements OnInit {
     });
   }
 
-  deleteComment(post: Post, comment: Comment) {
+  deleteComment(post: Post, comment: Comment): void {
     this.apiService.deleteComment(post.id, comment.id).subscribe({
       next: () => {
         this.commentsByPostId[post.id] = (this.commentsByPostId[post.id] || []).filter(c => c.id !== comment.id);
@@ -140,7 +131,7 @@ export class FeedComponent implements OnInit {
     });
   }
 
-  toggleLike(post: Post) {
+  toggleLike(post: Post): void {
     const wasLiked = post.likedByCurrentUser;
     const previousCount = post.likeCount;
     // Optimistic update

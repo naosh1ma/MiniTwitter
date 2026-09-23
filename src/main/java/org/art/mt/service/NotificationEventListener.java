@@ -2,6 +2,7 @@ package org.art.mt.service;
 
 import java.util.UUID;
 
+import org.art.mt.config.KafkaTopics;
 import org.art.mt.dto.NotificationEvent;
 import org.art.mt.entity.Notification;
 import org.art.mt.event.PostLikedEvent;
@@ -26,7 +27,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class NotificationEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationEventListener.class);
-    private static final String TOPIC = "minitwitter.notifications";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -47,7 +47,7 @@ public class NotificationEventListener {
     }
 
     private void publish(NotificationEvent event) {
-        kafkaTemplate.send(TOPIC, event.getRecipientUsername(), event)
+        kafkaTemplate.send(KafkaTopics.NOTIFICATIONS, event.getRecipientUsername(), event)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         logger.warn("Failed to publish notification event {} to Kafka", event.getEventId(), ex);

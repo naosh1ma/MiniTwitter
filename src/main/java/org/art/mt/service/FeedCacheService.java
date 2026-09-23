@@ -1,11 +1,13 @@
 package org.art.mt.service;
 
+import java.io.IOException;
 import java.time.Duration;
 
 import org.art.mt.dto.PagedResponse;
 import org.art.mt.dto.PostDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -24,7 +26,15 @@ import org.springframework.stereotype.Service;
 public class FeedCacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(FeedCacheService.class);
-    private static final String PAGE_ZERO_KEY = "feed:page0:size20";
+    /**
+     * The only page this cache holds: page 0 at the frontend's default page
+     * size. The key embeds the size, so the two must never be set independently
+     * - isCacheable() is what decides, and the key is derived from the same
+     * constant.
+     */
+    private static final int CACHED_PAGE = 0;
+    private static final int CACHED_PAGE_SIZE = 20;
+    private static final String PAGE_ZERO_KEY = "feed:page" + CACHED_PAGE + ":size" + CACHED_PAGE_SIZE;
     private static final Duration TTL = Duration.ofSeconds(30);
 
     private final StringRedisTemplate redisTemplate;
@@ -43,6 +53,11 @@ public class FeedCacheService {
                 .constructParametricType(PagedResponse.class, PostDTO.class);
     }
 
+    /** Whether a feed request for this page/size is the one page this cache holds. */
+    public boolean isCacheable(int page, int size) {
+        return page == CACHED_PAGE && size == CACHED_PAGE_SIZE;
+    }
+
     public PagedResponse<PostDTO> getPageZero() {
         try {
             String json = redisTemplate.opsForValue().get(PAGE_ZERO_KEY);
@@ -50,7 +65,7 @@ public class FeedCacheService {
                 return null;
             }
             return objectMapper.readValue(json, pagedPostResponseType);
-        } catch (DataAccessException | java.io.IOException e) {
+        } catch (DataAccessException | IOException e) {
             logger.warn("Feed cache read failed, falling back to a cache miss", e);
             return null;
         }
@@ -60,7 +75,7 @@ public class FeedCacheService {
         try {
             String json = objectMapper.writeValueAsString(data);
             redisTemplate.opsForValue().set(PAGE_ZERO_KEY, json, TTL);
-        } catch (DataAccessException | com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (DataAccessException | JsonProcessingException e) {
             logger.warn("Feed cache write failed, continuing without caching this response", e);
         }
     }

@@ -1,5 +1,6 @@
 package org.art.mt.consumer;
 
+import org.art.mt.config.KafkaTopics;
 import org.art.mt.dto.NotificationEvent;
 import org.art.mt.entity.Notification;
 import org.art.mt.entity.User;
@@ -30,7 +31,7 @@ public class NotificationConsumer {
         this.userRepository = userRepository;
     }
 
-    @KafkaListener(topics = "minitwitter.notifications", groupId = "minitwitter-notification-consumer")
+    @KafkaListener(topics = KafkaTopics.NOTIFICATIONS, groupId = "minitwitter-notification-consumer")
     public void onNotificationEvent(NotificationEvent event) {
         try {
             User recipient = userRepository.findByUsername(event.getRecipientUsername())

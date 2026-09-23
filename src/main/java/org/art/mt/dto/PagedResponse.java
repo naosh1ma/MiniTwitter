@@ -1,5 +1,6 @@
 package org.art.mt.dto;
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 public class PagedResponse<T> {
   private List<T> content;
@@ -10,6 +11,15 @@ public class PagedResponse<T> {
   private boolean last;
 
   public PagedResponse() {}
+
+  /**
+   * Copies a Spring Data Page's paging metadata, with content the caller has
+   * already mapped to the DTO type (the Page holds entities, not DTOs).
+   */
+  public static <T> PagedResponse<T> from(Page<?> page, List<T> content) {
+    return new PagedResponse<>(content, page.getNumber(), page.getSize(),
+        page.getTotalElements(), page.getTotalPages(), page.isLast());
+  }
 
   public PagedResponse(List<T> content, int page, int size, long totalElements, int totalPages, boolean last) {
     this.content = content;

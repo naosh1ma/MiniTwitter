@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api';
+import { AuthStore } from '../../services/auth-store';
+import { User } from '../../models/user';
 
 @Component({
   selector: 'app-header',
@@ -13,12 +15,16 @@ import { ApiService } from '../../services/api';
 })
 export class HeaderComponent implements OnInit {
   isAuthenticated = false;
-  user: any = null;
+  user: User | null = null;
   unreadCount = 0;
 
-  constructor(private apiService: ApiService, private router: Router) {}
+  constructor(
+    private apiService: ApiService,
+    private authStore: AuthStore,
+    private router: Router
+  ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.checkAuthStatus();
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -27,31 +33,23 @@ export class HeaderComponent implements OnInit {
     });
   }
 
-  checkAuthStatus() {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        this.user = JSON.parse(userStr);
-        this.isAuthenticated = true;
-        this.refreshUnreadCount();
-      } catch (e) {
-        console.error('Invalid user data in localStorage');
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      }
+  checkAuthStatus(): void {
+    this.user = this.authStore.user;
+    this.isAuthenticated = this.user !== null;
+    if (this.isAuthenticated) {
+      this.refreshUnreadCount();
     }
   }
 
-  refreshUnreadCount() {
+  refreshUnreadCount(): void {
     this.apiService.getUnreadNotificationCount().subscribe({
       next: (res) => this.unreadCount = res.data?.count ?? 0,
       error: () => {} // Notification badge is non-critical; a failed fetch just leaves the count stale.
     });
   }
 
-  logout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+  logout(): void {
+    this.authStore.logout();
     this.isAuthenticated = false;
     this.user = null;
     // Redirect to auth page

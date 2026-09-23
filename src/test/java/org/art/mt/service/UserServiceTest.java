@@ -65,9 +65,8 @@ class UserServiceTest {
         when(userRepository.existsByEmail("alice@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("hashed-pw");
 
-        boolean result = userService.registerUser("alice", "alice@example.com", "password123");
+        userService.registerUser("alice", "alice@example.com", "password123");
 
-        assertThat(result).isTrue();
         verify(userRepository).save(any(User.class));
     }
 

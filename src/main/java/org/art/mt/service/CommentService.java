@@ -4,11 +4,11 @@ import java.util.List;
 
 import org.art.mt.dto.CommentDTO;
 import org.art.mt.dto.CreateCommentDTO;
-import org.art.mt.dto.UserDTO;
 import org.art.mt.entity.Comment;
 import org.art.mt.entity.Post;
 import org.art.mt.entity.User;
 import org.art.mt.exception.ForbiddenActionException;
+import org.art.mt.mapper.UserMapper;
 import org.art.mt.repository.CommentRepository;
 import org.art.mt.repository.PostRepository;
 import org.art.mt.repository.UserRepository;
@@ -31,8 +31,7 @@ public class CommentService {
 
     @Transactional
     public CommentDTO createComment(Long postId, String username, CreateCommentDTO dto) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        Post post = requirePost(postId);
         User author = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -41,7 +40,7 @@ public class CommentService {
         comment.setPost(post);
         comment.setAuthor(author);
         commentRepository.save(comment);
-        return convertToDTO(comment);
+        return toDTO(comment);
     }
 
     @Transactional
@@ -58,22 +57,18 @@ public class CommentService {
     }
 
     public List<CommentDTO> getComments(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
-        return commentRepository.findByPostOrderByCreatedAtAsc(post).stream()
-                .map(this::convertToDTO)
+        return commentRepository.findByPostOrderByCreatedAtAsc(requirePost(postId)).stream()
+                .map(this::toDTO)
                 .toList();
     }
 
-    private CommentDTO convertToDTO(Comment comment) {
-        User user = comment.getAuthor();
-        UserDTO authorDTO = new UserDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getBio(),
-                user.getAvatarUrl(),
-                user.getCreatedAt());
-        return new CommentDTO(comment.getId(), comment.getContent(), authorDTO, comment.getCreatedAt());
+    private CommentDTO toDTO(Comment comment) {
+        return new CommentDTO(comment.getId(), comment.getContent(),
+                UserMapper.toDTO(comment.getAuthor()), comment.getCreatedAt());
+    }
+
+    private Post requirePost(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
     }
 }

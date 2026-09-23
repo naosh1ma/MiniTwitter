@@ -3,6 +3,8 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { AppComponent } from './app';
 
+// AppComponent is a shell: the header owns the auth state (see HeaderComponent)
+// and the session itself lives in AuthStore, which has its own spec.
 describe('App', () => {
   beforeEach(async () => {
     localStorage.clear();
@@ -23,27 +25,5 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('app-header')).toBeTruthy();
-  });
-
-  it('is not authenticated when localStorage has no user', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    expect(fixture.componentInstance.isAuthenticated).toBeFalse();
-  });
-
-  it('picks up the logged-in user from localStorage on init', () => {
-    localStorage.setItem('user', JSON.stringify({ username: 'alice' }));
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    expect(fixture.componentInstance.isAuthenticated).toBeTrue();
-    expect(fixture.componentInstance.user.username).toBe('alice');
-  });
-
-  it('clears storage and stays logged out when localStorage has malformed user JSON', () => {
-    localStorage.setItem('user', 'not-valid-json');
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    expect(fixture.componentInstance.isAuthenticated).toBeFalse();
-    expect(localStorage.getItem('user')).toBeNull();
   });
 });

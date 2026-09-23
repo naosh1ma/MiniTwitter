@@ -26,15 +26,11 @@
     </button>
   </div>
 
-  <div *ngIf="loading" class="mt-6 text-center text-sm text-slate-500">
-    Loading posts...
-  </div>
-
   <div *ngIf="error" class="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
     Couldn't load the feed. Please try again later.
   </div>
 
-  <div *ngIf="!loading && !error && posts.length === 0" class="mt-6 text-center text-sm text-slate-500">
+  <div *ngIf="!error && posts.length === 0" class="mt-6 text-center text-sm text-slate-500">
     No posts yet{{ tab === 'following' ? ' from people you follow' : '' }}.
   </div>
 
@@ -55,7 +51,7 @@
 
       <img
         *ngIf="post.imageUrl"
-        [src]="apiOrigin + post.imageUrl"
+        [src]="post.imageUrl"
         alt="Post image"
         class="mt-2 max-h-96 w-full rounded-xl border border-slate-100 object-cover"
       />

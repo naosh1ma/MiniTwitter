@@ -1,7 +1,7 @@
 package org.art.mt.service;
 
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +10,7 @@ import org.art.mt.dto.UserDTO;
 import org.art.mt.entity.Follow;
 import org.art.mt.event.UserFollowedEvent;
 import org.art.mt.exception.UserRegistrationException;
+import org.art.mt.mapper.UserMapper;
 import org.art.mt.repository.FollowRepository;
 import org.art.mt.repository.UserRepository;
 import org.art.mt.entity.User;
@@ -41,25 +42,24 @@ public class UserService {
     }
 
     @Transactional
-    public boolean registerUser(String username, String email, String password) {
+    public void registerUser(String username, String email, String password) {
+        logger.info("Registering user: {}", username);
+        if (userRepository.existsByUsername(username)) {
+            logger.info("Rejected registration, username already exists: {}", username);
+            throw new IllegalArgumentException("Username already exists");
+        }
+        if (email != null && userRepository.existsByEmail(email)) {
+            logger.info("Rejected registration, email already exists: {}", email);
+            throw new IllegalArgumentException("Email already exists");
+        }
         try {
-            logger.info("Registering user: {}", username);
-            if (userRepository.existsByUsername(username)) {
-                logger.error("Username already exists: {}", username);
-                throw new IllegalArgumentException("Username already exists");
-            }
-            if (email != null && userRepository.existsByEmail(email)) {
-                logger.error("Email already exists: {}", email);
-                throw new IllegalArgumentException("Email already exists");
-            }
-            User user = new User(username, email, passwordEncoder.encode(password));
-            userRepository.save(user);
-            return true;
-        } catch (DataAccessException e) {
-            throw new UserRegistrationException("Username already exists");
+            userRepository.save(new User(username, email, passwordEncoder.encode(password)));
+        } catch (DataIntegrityViolationException e) {
+            // The existsBy checks above lost a race with a concurrent registration
+            // and the unique constraint rejected this insert.
+            throw new UserRegistrationException("Username or email already exists", e);
         }
     }
-
 
     public Optional<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -67,8 +67,7 @@ public class UserService {
 
     @Transactional
     public User updateProfile(String username, String bio, String avatarUrl) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = requireUser(username);
         user.setBio(bio);
         if (avatarUrl != null) {
             user.setAvatarUrl(avatarUrl);
@@ -80,8 +79,7 @@ public class UserService {
 
     @Transactional
     public User updateAvatar(String username, MultipartFile file) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User user = requireUser(username);
         String avatarUrl = fileStorageService.storeImage(file, "avatar-" + user.getId(), user.getAvatarUrl());
         user.setAvatarUrl(avatarUrl);
         user.setUpdatedAt(LocalDateTime.now());
@@ -94,10 +92,8 @@ public class UserService {
         if (followerUsername.equals(followingUsername)) {
             throw new IllegalArgumentException("You cannot follow yourself");
         }
-        User follower = userRepository.findByUsername(followerUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        User following = userRepository.findByUsername(followingUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User follower = requireUser(followerUsername);
+        User following = requireUser(followingUsername);
         if (!followRepository.existsByFollowerAndFollowing(follower, following)) {
             Follow follow = new Follow();
             follow.setFollower(follower);
@@ -109,21 +105,13 @@ public class UserService {
 
     @Transactional
     public void unfollowUser(String followerUsername, String followingUsername) {
-        User follower = userRepository.findByUsername(followerUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        User following = userRepository.findByUsername(followingUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        User follower = requireUser(followerUsername);
+        User following = requireUser(followingUsername);
         followRepository.deleteByFollowerAndFollowing(follower, following);
     }
 
     public UserDTO convertToDTOWithFollowInfo(User user) {
-        UserDTO dto = new UserDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getBio(),
-                user.getAvatarUrl(),
-                user.getCreatedAt());
+        UserDTO dto = UserMapper.toDTO(user);
         dto.setFollowerCount(followRepository.countByFollowing(user));
         dto.setFollowingCount(followRepository.countByFollower(user));
         String currentUsername = securityUtil.getCurrentUsernameOrNull();
@@ -132,5 +120,10 @@ public class UserService {
                     dto.setFollowedByCurrentUser(followRepository.existsByFollowerAndFollowing(currentUser, user)));
         }
         return dto;
+    }
+
+    private User requireUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }

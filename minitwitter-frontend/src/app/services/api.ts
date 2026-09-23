@@ -7,7 +7,9 @@ import { Comment } from '../models/comment';
 import { AppNotification } from '../models/notification';
 import { LoginRequest } from '../models/login-request';
 import { LoginResponse } from '../models/login-response';
+import { RegisterRequest } from '../models/register-request';
 import { RegisterResponse } from '../models/register-response';
+import { CreatePostRequest } from '../models/create-post-request';
 import { ApiResponse } from '../models/api-response';
 
 @Injectable({
@@ -19,7 +21,6 @@ export class ApiService {
   // in production, Caddy reverse-proxies them to the backend on the same origin
   // the frontend is served from. Never hardcode a host here.
   private baseUrl = '/api';
-  readonly apiOrigin = '';  // Used to resolve server-relative URLs like avatarUrl
 
   constructor(private http: HttpClient) { } // HTTP Client injizieren
 
@@ -30,16 +31,16 @@ export class ApiService {
     return this.http.post<LoginResponse>(`${this.baseUrl}/auth/login`, loginRequest);
   }
 
-  register(user: any): Observable<RegisterResponse> {
+  register(user: RegisterRequest): Observable<RegisterResponse> {
     return this.http.post<RegisterResponse>(`${this.baseUrl}/users/register`, user);
   }
 
   // Posts
-  getPosts(page = 0, size = 20) {
+  getPosts(page = 0, size = 20): Observable<{ posts: Post[] }> {
     return this.http.get<{ posts: Post[] }>(`${this.baseUrl}/posts/feed?page=${page}&size=${size}`);
   }
 
-  createPost(post: any): Observable<ApiResponse<Post>> {
+  createPost(post: CreatePostRequest): Observable<ApiResponse<Post>> {
     return this.http.post<ApiResponse<Post>>(`${this.baseUrl}/posts`, post);
   }
 
@@ -69,7 +70,7 @@ export class ApiService {
     return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/posts/${postId}/comments/${commentId}`);
   }
 
-  getFollowingFeed(page = 0, size = 20) {
+  getFollowingFeed(page = 0, size = 20): Observable<{ posts: Post[] }> {
     return this.http.get<{ posts: Post[] }>(`${this.baseUrl}/posts/feed/following?page=${page}&size=${size}`);
   }
 

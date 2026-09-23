@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api';
+import { AuthStore } from '../../services/auth-store';
 import { User } from '../../models/user';
 
 @Component({
@@ -21,23 +22,17 @@ export class ProfileComponent implements OnInit {
   followBusy = false;
   error = false;
 
-  constructor(private apiService: ApiService, private route: ActivatedRoute) { }
-
-  get apiOrigin(): string {
-    return this.apiService.apiOrigin;
-  }
+  constructor(
+    private apiService: ApiService,
+    private authStore: AuthStore,
+    private route: ActivatedRoute
+  ) { }
 
   get currentUsername(): string | null {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
-    try {
-      return JSON.parse(userStr).username;
-    } catch {
-      return null;
-    }
+    return this.authStore.username;
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       const username = params.get('username');
       this.user = null;
@@ -52,7 +47,7 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  loadProfile() {
+  loadProfile(): void {
     this.apiService.getProfile().subscribe({
       next: (response) => {
         if (response.success) {
@@ -66,7 +61,7 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  loadUserByUsername(username: string) {
+  loadUserByUsername(username: string): void {
     this.apiService.getUserByUsername(username).subscribe({
       next: (response) => {
         if (response.success) {
@@ -80,7 +75,7 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  toggleFollow() {
+  toggleFollow(): void {
     if (!this.user || this.followBusy) return;
     this.followBusy = true;
     const wasFollowed = this.user.followedByCurrentUser;
@@ -103,14 +98,14 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  toggleEdit() {
+  toggleEdit(): void {
     this.isEditing = !this.isEditing;
     if (this.isEditing && this.user) {
       this.bio = this.user.bio || '';
     }
   }
 
-  updateProfile() {
+  updateProfile(): void {
     if (!this.user) return;
 
     this.apiService.updateProfile({ bio: this.bio }).subscribe({
@@ -126,11 +121,11 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  onFileSelected(event: any) {
-    this.avatarFile = event.target.files[0];
+  onFileSelected(event: Event): void {
+    this.avatarFile = (event.target as HTMLInputElement).files?.[0] ?? null;
   }
 
-  uploadAvatar() {
+  uploadAvatar(): void {
     if (!this.avatarFile || !this.user) return;
 
     this.apiService.uploadAvatar(this.avatarFile).subscribe({

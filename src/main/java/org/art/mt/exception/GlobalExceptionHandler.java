@@ -20,7 +20,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleInvalidToken(InvalidTokenException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error("Invalid token: " + e.getMessage()));
+    }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidCredentials(InvalidCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(UserRegistrationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserRegistration(UserRegistrationException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(e.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -63,6 +72,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception e) {
-        return ResponseEntity.status(500).body(ApiResponse.error("Internal server error"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Internal server error"));
     }
 }

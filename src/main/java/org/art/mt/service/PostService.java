@@ -2,17 +2,17 @@ package org.art.mt.service;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.art.mt.dto.CreatePostDTO;
+import org.art.mt.dto.LikeStatusDTO;
 import org.art.mt.dto.PagedResponse;
 import org.art.mt.dto.PostDTO;
-import org.art.mt.dto.UserDTO;
 import org.art.mt.entity.Like;
 import org.art.mt.entity.Post;
 import org.art.mt.entity.User;
 import org.art.mt.exception.ForbiddenActionException;
+import org.art.mt.mapper.UserMapper;
 import org.art.mt.repository.CommentRepository;
 import org.art.mt.repository.FollowRepository;
 import org.art.mt.repository.LikeRepository;
@@ -22,7 +22,7 @@ import org.art.mt.event.PostLikedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Sort;
@@ -32,6 +32,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class PostService {
+
+    private static final Sort NEWEST_FIRST = Sort.by(Sort.Direction.DESC, "createdAt");
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
@@ -60,22 +62,19 @@ public class PostService {
     }
 
     @Transactional
-    public PostDTO createPost(CreatePostDTO dto) {
-        String username = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        User author = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public PostDTO createPost(String username, CreatePostDTO dto) {
+        User author = requireUser(username);
         Post post = new Post();
         post.setContent(dto.getContent());
         post.setAuthor(author);
         postRepository.save(post);
         feedCacheService.evictPageZero();
-        return convertPostToDTO(post, username);
+        return toPostDTO(post, username);
     }
 
     @Transactional
     public void deletePost(Long postId, String username) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        Post post = requirePost(postId);
         if (!post.getAuthor().getUsername().equals(username)) {
             throw new ForbiddenActionException("You can only delete your own posts");
         }
@@ -85,23 +84,20 @@ public class PostService {
 
     @Transactional
     public PostDTO attachImage(Long postId, String username, MultipartFile file) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        Post post = requirePost(postId);
         if (!post.getAuthor().getUsername().equals(username)) {
             throw new ForbiddenActionException("You can only add an image to your own posts");
         }
         String imageUrl = fileStorageService.storeImage(file, "post-" + postId, post.getImageUrl());
         post.setImageUrl(imageUrl);
         postRepository.save(post);
-        return convertPostToDTO(post, username);
+        return toPostDTO(post, username);
     }
 
     @Transactional
-    public Map<String, Object> toggleLike(Long postId, String username) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public LikeStatusDTO toggleLike(Long postId, String username) {
+        Post post = requirePost(postId);
+        User user = requireUser(username);
 
         boolean liked;
         if (likeRepository.existsByPostAndUser(post, user)) {
@@ -123,21 +119,19 @@ public class PostService {
                 liked = true;
             }
         }
-        long likeCount = likeRepository.countByPost(post);
-        return Map.of("liked", liked, "likeCount", likeCount);
+        return new LikeStatusDTO(liked, likeRepository.countByPost(post));
     }
 
     @Transactional
     public PagedResponse<PostDTO> getPostFeed(int page, int size) {
         String currentUsername = securityUtil.getCurrentUsernameOrNull();
 
-        if (page == 0 && size == 20) {
+        if (feedCacheService.isCacheable(page, size)) {
             PagedResponse<PostDTO> cached = feedCacheService.getPageZero();
             if (cached != null) {
                 return overlayLikes(cached, currentUsername);
             }
-            PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-            Page<Post> posts = postRepository.findAll(pr);
+            Page<Post> posts = postRepository.findAll(newestFirst(page, size));
             // Build with no current user, so the cached JSON never contains anyone's
             // personal like state - only impersonal data (likeCount, commentCount, etc).
             PagedResponse<PostDTO> base = toPagedResponse(posts, null);
@@ -145,33 +139,22 @@ public class PostService {
             return overlayLikes(base, currentUsername);
         }
 
-        PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Post> posts = postRepository.findAll(pr);
+        Page<Post> posts = postRepository.findAll(newestFirst(page, size));
         return toPagedResponse(posts, currentUsername);
     }
 
     @Transactional
     public PagedResponse<PostDTO> getFollowingFeed(String username, int page, int size) {
-        User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        List<User> following = followRepository.findFollowingUsers(currentUser);
-        PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Post> posts = postRepository.findByAuthorInOrderByCreatedAtDesc(following, pr);
+        List<User> following = followRepository.findFollowingUsers(requireUser(username));
+        Page<Post> posts = postRepository.findByAuthorInOrderByCreatedAtDesc(following, newestFirst(page, size));
         return toPagedResponse(posts, username);
     }
 
     private PagedResponse<PostDTO> toPagedResponse(Page<Post> posts, String currentUsernameOrNull) {
         List<PostDTO> content = posts.getContent().stream()
-                .map(post -> convertPostToDTO(post, currentUsernameOrNull))
+                .map(post -> toPostDTO(post, currentUsernameOrNull))
                 .toList();
-        PagedResponse<PostDTO> resp = new PagedResponse<>();
-        resp.setContent(content);
-        resp.setPage(posts.getNumber());
-        resp.setSize(posts.getSize());
-        resp.setTotalElements(posts.getTotalElements());
-        resp.setTotalPages(posts.getTotalPages());
-        resp.setLast(posts.isLast());
-        return resp;
+        return PagedResponse.from(posts, content);
     }
 
     /**
@@ -194,12 +177,11 @@ public class PostService {
         return response;
     }
 
-    private PostDTO convertPostToDTO(Post post, String currentUsernameOrNull) {
-        UserDTO authorDTO = convertToDTO(post.getAuthor());
+    private PostDTO toPostDTO(Post post, String currentUsernameOrNull) {
         PostDTO dto = new PostDTO(
                 post.getId(),
                 post.getContent(),
-                authorDTO,
+                UserMapper.toDTO(post.getAuthor()),
                 post.getCreatedAt(),
                 post.getUpdatedAt());
         dto.setImageUrl(post.getImageUrl());
@@ -212,13 +194,17 @@ public class PostService {
         return dto;
     }
 
-    private UserDTO convertToDTO(User user) {
-        return new UserDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getBio(),
-                user.getAvatarUrl(),
-                user.getCreatedAt());
+    private static Pageable newestFirst(int page, int size) {
+        return PageRequest.of(page, size, NEWEST_FIRST);
+    }
+
+    private Post requirePost(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+    }
+
+    private User requireUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }

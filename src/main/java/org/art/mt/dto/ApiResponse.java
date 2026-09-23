@@ -8,14 +8,19 @@ public class ApiResponse<T> {
   private LocalDateTime timestamp = LocalDateTime.now();
 
   public static <T> ApiResponse<T> ok(T data, String message) {
-    ApiResponse<T> r = new ApiResponse<>();
-    r.success = true; r.message = message; r.data = data; 
-    return r;
+    ApiResponse<T> response = new ApiResponse<>();
+    response.success = true;
+    response.message = message;
+    response.data = data;
+    return response;
   }
+
   public static <T> ApiResponse<T> error(String message) {
-    ApiResponse<T> r = new ApiResponse<>();
-    r.success = false; r.message = message; r.data = null; 
-    return r;
+    ApiResponse<T> response = new ApiResponse<>();
+    response.success = false;
+    response.message = message;
+    response.data = null;
+    return response;
   }
   public boolean isSuccess() { return success; }
   public String getMessage() { return message; }

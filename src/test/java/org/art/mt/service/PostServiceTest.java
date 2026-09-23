@@ -2,10 +2,10 @@ package org.art.mt.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.art.mt.dto.CreatePostDTO;
+import org.art.mt.dto.LikeStatusDTO;
 import org.art.mt.dto.PagedResponse;
 import org.art.mt.dto.PostDTO;
 import org.art.mt.entity.Post;
@@ -90,11 +90,10 @@ class PostServiceTest {
     }
 
     @Test
-    void createPost_savesPostAuthoredByCurrentUser() {
-        authenticateAs("alice");
+    void createPost_savesPostAuthoredByTheGivenUser() {
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
 
-        PostDTO result = postService.createPost(new CreatePostDTO("hello world"));
+        PostDTO result = postService.createPost("alice", new CreatePostDTO("hello world"));
 
         assertThat(result.getContent()).isEqualTo("hello world");
         assertThat(result.getAuthor().getUsername()).isEqualTo("alice");
@@ -139,10 +138,10 @@ class PostServiceTest {
         when(likeRepository.existsByPostAndUser(post, bob)).thenReturn(false);
         when(likeRepository.countByPost(post)).thenReturn(1L);
 
-        Map<String, Object> result = postService.toggleLike(10L, "bob");
+        LikeStatusDTO result = postService.toggleLike(10L, "bob");
 
-        assertThat(result.get("liked")).isEqualTo(true);
-        assertThat(result.get("likeCount")).isEqualTo(1L);
+        assertThat(result.liked()).isTrue();
+        assertThat(result.likeCount()).isEqualTo(1L);
         verify(eventPublisher).publishEvent(new PostLikedEvent("alice", "bob", 10L));
     }
 
@@ -154,10 +153,10 @@ class PostServiceTest {
         when(likeRepository.existsByPostAndUser(post, bob)).thenReturn(true);
         when(likeRepository.countByPost(post)).thenReturn(0L);
 
-        Map<String, Object> result = postService.toggleLike(10L, "bob");
+        LikeStatusDTO result = postService.toggleLike(10L, "bob");
 
-        assertThat(result.get("liked")).isEqualTo(false);
-        assertThat(result.get("likeCount")).isEqualTo(0L);
+        assertThat(result.liked()).isFalse();
+        assertThat(result.likeCount()).isEqualTo(0L);
         verify(likeRepository).deleteByPostAndUser(post, bob);
         verify(eventPublisher, never()).publishEvent(any());
     }
@@ -178,6 +177,7 @@ class PostServiceTest {
     @Test
     void getPostFeed_anonymousUser_neverMarksPostsAsLiked() {
         // No authentication set up -> SecurityUtil sees no authenticated user.
+        when(feedCacheService.isCacheable(0, 20)).thenReturn(true);
         Post post = existingPostBy(alice);
         Page<Post> page = new PageImpl<>(List.of(post), PageRequest.of(0, 20), 1);
         when(postRepository.findAll(any(PageRequest.class))).thenReturn(page);
@@ -211,6 +211,7 @@ class PostServiceTest {
 
     @Test
     void getPostFeed_cacheMiss_buildsFromDbAndPopulatesTheCache() {
+        when(feedCacheService.isCacheable(0, 20)).thenReturn(true);
         Post post = existingPostBy(alice);
         Page<Post> page = new PageImpl<>(List.of(post), PageRequest.of(0, 20), 1);
         when(feedCacheService.getPageZero()).thenReturn(null);
@@ -226,6 +227,7 @@ class PostServiceTest {
     @Test
     void getPostFeed_cacheHit_overlaysLikesWithoutHittingTheDatabaseAgain() {
         authenticateAs("bob");
+        when(feedCacheService.isCacheable(0, 20)).thenReturn(true);
         PostDTO cachedPost = new PostDTO();
         cachedPost.setId(10L);
         cachedPost.setLikedByCurrentUser(false); // cached data is always impersonal
@@ -243,6 +245,7 @@ class PostServiceTest {
 
     @Test
     void getPostFeed_nonDefaultPageSize_bypassesTheCacheEntirely() {
+        // isCacheable(1, 10) is false by default on the mock, mirroring the real service.
         Post post = existingPostBy(alice);
         Page<Post> page = new PageImpl<>(List.of(post), PageRequest.of(1, 10), 1);
         when(postRepository.findAll(any(PageRequest.class))).thenReturn(page);

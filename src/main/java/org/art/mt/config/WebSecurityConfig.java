@@ -1,5 +1,6 @@
 package org.art.mt.config;
 
+import org.art.mt.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,12 +33,12 @@ public class WebSecurityConfig {
                         // "profile" would otherwise also match that single-segment pattern.
                         .requestMatchers("/api/users/profile", "/api/users/profile/avatar").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/{username}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, FileStorageService.UPLOADS_URL_PATTERN).permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults()) // Uses default CorsConfigurationSource bean or allows all origins if configured
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -40,7 +40,7 @@ describe('Header', () => {
     localStorage.setItem('user', JSON.stringify({ username: 'alice' }));
     component.checkAuthStatus();
     expect(component.isAuthenticated).toBeTrue();
-    expect(component.user.username).toBe('alice');
+    expect(component.user?.username).toBe('alice');
 
     httpMock.expectOne('/api/notifications/unread-count')
       .flush({ success: true, message: null, data: { count: 0 } });

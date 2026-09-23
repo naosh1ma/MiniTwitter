@@ -13,13 +13,17 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class FileStorageService {
 
+    /** Public URL prefix the stored files are served under, and the matching security/resource pattern. */
+    public static final String UPLOADS_URL_PREFIX = "/uploads/";
+    public static final String UPLOADS_URL_PATTERN = UPLOADS_URL_PREFIX + "**";
+
     @Value("${app.upload.dir}")
     private String uploadDir;
 
     /**
      * Validates the file is an image, stores it under the upload dir with a unique
      * name, deletes the previous file at previousUrl (if any and locally-hosted),
-     * and returns the new file's public "/uploads/..." URL.
+     * and returns the new file's public URL under UPLOADS_URL_PREFIX.
      */
     public String storeImage(MultipartFile file, String filenamePrefix, String previousUrl) {
         String contentType = file.getContentType();
@@ -39,12 +43,12 @@ public class FileStorageService {
             String filename = filenamePrefix + "-" + UUID.randomUUID() + extension;
             Files.copy(file.getInputStream(), uploadPath.resolve(filename));
 
-            if (previousUrl != null && previousUrl.startsWith("/uploads/")) {
-                Path previousFile = uploadPath.resolve(previousUrl.substring("/uploads/".length()));
+            if (previousUrl != null && previousUrl.startsWith(UPLOADS_URL_PREFIX)) {
+                Path previousFile = uploadPath.resolve(previousUrl.substring(UPLOADS_URL_PREFIX.length()));
                 Files.deleteIfExists(previousFile);
             }
 
-            return "/uploads/" + filename;
+            return UPLOADS_URL_PREFIX + filename;
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to store file", e);
         }

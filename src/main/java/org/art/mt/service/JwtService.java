@@ -12,6 +12,8 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    private static final String BEARER_PREFIX = "Bearer ";
+
     @Value("${jwt.secret}")
     private String jwtSecret;
     @Value("${jwt.expiration}")
@@ -54,13 +56,14 @@ public class JwtService {
         }
     }
 
-    public Date extractExpiration(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
-                .build()
-                .parseClaimsJws(token)
-                .getBody().getExpiration();
+    /**
+     * Extracts the raw token from an "Authorization: Bearer <token>" header
+     * value, or returns null if the header is absent or not a bearer header.
+     */
+    public String resolveBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return null;
+        }
+        return authorizationHeader.substring(BEARER_PREFIX.length());
     }
-
-
 }

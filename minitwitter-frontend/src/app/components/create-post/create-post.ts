@@ -19,8 +19,8 @@ export class CreatePostComponent {
 
   constructor(private apiService: ApiService) {}
 
-  onFileSelected(event: any) {
-    const file = event.target.files?.[0] ?? null;
+  onFileSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
     this.imageFile = file;
     if (this.imagePreviewUrl) {
       URL.revokeObjectURL(this.imagePreviewUrl);
@@ -28,7 +28,7 @@ export class CreatePostComponent {
     this.imagePreviewUrl = file ? URL.createObjectURL(file) : null;
   }
 
-  removeImage() {
+  removeImage(): void {
     this.imageFile = null;
     if (this.imagePreviewUrl) {
       URL.revokeObjectURL(this.imagePreviewUrl);
@@ -36,7 +36,7 @@ export class CreatePostComponent {
     }
   }
 
-  onSubmit() {
+  onSubmit(): void {
     if (!this.postContent.trim()) return;
 
     this.isSubmitting = true;
@@ -65,7 +65,7 @@ export class CreatePostComponent {
     });
   }
 
-  private finishSubmit() {
+  private finishSubmit(): void {
     this.postContent = '';
     this.removeImage();
     this.isSubmitting = false;

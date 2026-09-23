@@ -37,7 +37,7 @@
     <!-- Avatar Section -->
     <div class="mb-6 flex flex-col items-center">
       <img
-        [src]="user.avatarUrl ? (apiOrigin + user.avatarUrl) : '/assets/default-avatar.png'"
+        [src]="user.avatarUrl || '/assets/default-avatar.png'"
         [alt]="user.username + ' avatar'"
         class="h-28 w-28 rounded-full border-4 border-slate-100 object-cover"
       />
